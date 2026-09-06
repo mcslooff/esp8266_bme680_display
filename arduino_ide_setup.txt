@@ -1,0 +1,11 @@
+Arduino IDE setup:
+1. Board: NodeMCU 1.0 (ESP-12E Module), or the exact ESP8266 board used by the recovered device.
+2. Install the existing/working libraries used by the original project:
+   - Adafruit BME680 Library
+   - Adafruit GFX Library
+   - Adafruit SSD1306
+   - ESP8266FtpServer (the original project already used this library)
+3. Keep the `src` directory next to the `.ino` file.
+4. Flash v2.
+
+The sketch detects the old EEPROM marker/configuration and migrates it to the v2 CRC-protected format.
