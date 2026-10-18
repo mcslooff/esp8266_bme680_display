@@ -10,6 +10,7 @@ public:
   bool begin();
   bool read(float batteryVoltage, Measurement& out);
   bool warmupRead();
+  void warmupSensor(uint16_t seconds); 
   bool present() const { return initialized_; }
   void setTemperatureCorrection(float c) { correctionC_ = c; }
   float temperatureCorrection() const { return correctionC_; }

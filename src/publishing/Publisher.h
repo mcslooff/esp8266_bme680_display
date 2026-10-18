@@ -3,13 +3,24 @@
 #include "../config/ConfigManager.h"
 #include "../storage/MeasurementStore.h"
 #include "../system/Logger.h"
+#include <ArduinoMqttClient.h>
+
 class Publisher {
 public:
-  Publisher(const AppConfig& cfg, MeasurementStore& store, Logger& log):cfg_(cfg),store_(store),log_(log){}
+  Publisher(const AppConfig& cfg, MeasurementStore& store, Logger& log, MqttClient& mqttClient)
+    : cfg_(cfg), store_(store), log_(log), mqttClient_(mqttClient) {}
   bool publish(const Measurement& m);
+  String jsonEscape(const String& in);
   bool publishBufferedJson(const String& body);
   void retryBuffered();
+  String json(const Measurement& m);
 private:
-  const AppConfig& cfg_; MeasurementStore& store_; Logger& log_;
-  bool httpPost(const String& body); bool domoticz(const Measurement& m); String json(const Measurement& m) const;
+  const AppConfig& cfg_;
+  MeasurementStore& store_;
+  Logger& log_;
+  MqttClient& mqttClient_;
+  bool mqttPost(const String& body);
+  bool httpPost(const String& body);
+  String getDeviceId() const;
+  String translateMqttErrorCode(const int code);
 };

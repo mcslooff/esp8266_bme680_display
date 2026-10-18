@@ -2,17 +2,27 @@
 
 bool BME680Sensor::begin() {
     if (sensor_.begin(0x76)) {
-		initialized_ = true;
-        return true;
+		  initialized_ = true;
+      return true;
     }
 
     if (sensor_.begin(0x77)) {
-		initialized_ = true;
-        return true;
+		  initialized_ = true;
+      return true;
     }
 
     initialized_ = false;
     return false;
+}
+
+void BME680Sensor::warmupSensor(uint16_t seconds) {
+  uint32_t started = millis();
+
+  while (millis() - started < seconds * 1000UL) {
+    warmupRead();
+    delay(1000);
+    yield();
+  }
 }
 
 bool BME680Sensor::warmupRead() {
