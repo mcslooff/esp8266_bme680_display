@@ -123,17 +123,41 @@ static void handleRoot() {
     if (server.hasArg("stationPassword") && !server.arg("stationPassword").isEmpty()) safeCopy(config.station.password, sizeof(config.station.password), server.arg("stationPassword"));
     if (server.hasArg("stationHostname")) safeCopy(config.station.hostname, sizeof(config.station.hostname), server.arg("stationHostname"));
     
-    if (server.hasArg("requireAuthentication")) config.server.requireAuthentication = server.arg("requireAuthentication") == "on";
+    if (server.hasArg("requireAuthentication")) {
+       config.server.requireAuthentication = server.arg("requireAuthentication") == "on";
+    } else {
+      config.server.requireAuthentication = false;
+    }
     if (server.hasArg("authenticationUsername")) safeCopy(config.server.username, sizeof(config.server.username), server.arg("authenticationUsername"));
     if (server.hasArg("authenticationPassword") && !server.arg("authenticationPassword").isEmpty()) safeCopy(config.server.password, sizeof(config.server.password), server.arg("authenticationPassword"));
     
-    if (server.hasArg("publishHttpPost")) config.measurement.publishHttp = server.arg("publishHttpPost") == "on";
-    if (server.hasArg("publishMqtt")) config.measurement.publishMqtt = server.arg("publishMqtt") == "on";
+    if (server.hasArg("publishHttpPost")) {
+      config.measurement.publishHttp = server.arg("publishHttpPost") == "on";
+    } else {
+      config.measurement.publishHttp = false;
+    }
+    if (server.hasArg("publishMqtt")) {
+      config.measurement.publishMqtt = server.arg("publishMqtt") == "on";
+    } else {
+      config.measurement.publishMqtt = false;
+    }
     if (server.hasArg("sampleInterval")) config.measurement.sampleIntervalSeconds = max(1, server.arg("sampleInterval").toInt());
     if (server.hasArg("publishHumidity")) config.measurement.humidity = server.arg("publishHumidity") == "on";
-    if (server.hasArg("publishTemperature")) config.measurement.temperature = server.arg("publishTemperature") == "on";
-    if (server.hasArg("publishPressure")) config.measurement.pressure = server.arg("publishPressure") == "on";
-    if (server.hasArg("publishGasResistance")) config.measurement.gasResistance = server.arg("publishGasResistance") == "on";
+    if (server.hasArg("publishTemperature")) {
+      config.measurement.temperature = server.arg("publishTemperature") == "on";
+    } else {
+      config.measurement.temperature = false;
+    }
+    if (server.hasArg("publishPressure")) {
+      config.measurement.pressure = server.arg("publishPressure") == "on";
+    } else {
+      config.measurement.pressure = false;
+    }
+    if (server.hasArg("publishGasResistance")) {
+      config.measurement.gasResistance = server.arg("publishGasResistance") == "on";
+    } else {
+      config.measurement.gasResistance = false;
+    }
     
     if (server.hasArg("publishURL")) safeCopy(config.httpPost.url, sizeof(config.httpPost.url), server.arg("publishURL"));
     if (server.hasArg("publishingUsername")) safeCopy(config.httpPost.username, sizeof(config.httpPost.username), server.arg("publishingUsername"));
@@ -150,7 +174,11 @@ static void handleRoot() {
       if (p >= 1 && p <= 65535) config.mqtt.port = p;
     }
 
-    if (server.hasArg("useNTP")) config.ntp.useNTP = server.arg("useNTP") == "on";
+    if (server.hasArg("useNTP")) {
+      config.ntp.useNTP = server.arg("useNTP") == "on";
+    } else {
+      config.ntp.useNTP = false;
+    }
     if (server.hasArg("NTPOffset")) config.ntp.NTPOffset = server.arg("NTPOffset").toInt();
     if (server.hasArg("NTPPoolURL")) safeCopy(config.ntp.NTPPoolURL, sizeof(config.ntp.NTPPoolURL), server.arg("NTPPoolURL"));
 
@@ -675,6 +703,7 @@ void setup() {
   setupMqtt();
   // Set last sample timestamp to now so first sample is delayed with sample-interval seconds.
   lastSampleMillis = millis() - ((uint32_t)config.measurement.sampleIntervalSeconds * 1000UL);
+  logger.setLogLevel(1);
 }
 
 void loop() {

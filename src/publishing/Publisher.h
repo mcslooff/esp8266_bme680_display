@@ -19,8 +19,8 @@ private:
   MeasurementStore& store_;
   Logger& log_;
   MqttClient& mqttClient_;
-  bool mqttConnected = false;
   bool mqttPost(const String& body);
   bool httpPost(const String& body);
   String getDeviceId() const;
+  String translateMqttErrorCode(const int code);
 };

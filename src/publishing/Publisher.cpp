@@ -84,22 +84,66 @@ bool Publisher::mqttPost(const String& body) {
 
   if(!cfg_.measurement.publishMqtt) return true;
 
-  Serial.println("Check MQTT connection");
-  if(!mqttConnected) {
-    if (!mqttClient_.connect(cfg_.mqtt.broker, cfg_.mqtt.port)) {
-      Serial.println("Failed to get a valid MQTT connection");
-      return false;
-    }
-    mqttConnected = true;
+  if (cfg_.mqtt.username[0]) {
+    mqttClient_.setUsernamePassword(
+      cfg_.mqtt.username,
+      cfg_.mqtt.password
+    );
   }
 
-  Serial.println("begin message");
+  log_.debug("Checking MQTT connection\n");
+  if (!mqttClient_.connect(cfg_.mqtt.broker, cfg_.mqtt.port)) {
+
+
+
+    log_.error(
+      "Failed to connect to MQTT broker %s:%d; error code=%d, %s\n",
+      cfg_.mqtt.broker,
+      cfg_.mqtt.port,
+      mqttClient_.connectError(),
+      translateMqttErrorCode(mqttClient_.connectError())
+    );
+    return false;
+  }
+
+  log_.debug("begin message\n");
   mqttClient_.beginMessage(cfg_.mqtt.producerTopic);
   mqttClient_.print(body);
   mqttClient_.endMessage();
-  Serial.println("end message");
+  log_.debug("end message\n");
 
   return true;
+}
+
+String Publisher::translateMqttErrorCode(const int code) {
+  switch (code) {
+    case MQTT_CONNECTION_REFUSED:
+      return "Connection refused";
+
+    case MQTT_CONNECTION_TIMEOUT:
+      return "Connection timed out";
+
+    case MQTT_SUCCESS:
+      return "Success";
+
+    case MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
+      return "Unacceptable MQTT protocol version";
+
+    case MQTT_IDENTIFIER_REJECTED:
+      return "Client identifier rejected";
+
+    case MQTT_SERVER_UNAVAILABLE:
+      return "MQTT server unavailable";
+
+    case MQTT_BAD_USER_NAME_OR_PASSWORD:
+      return "Bad username or password";
+
+    case MQTT_NOT_AUTHORIZED:
+      return "Not authorized";
+
+    default:
+      return String("Unknown MQTT error (") + code + ")";
+  }
 }
 
 bool Publisher::httpPost(const String& body) {
@@ -165,9 +209,15 @@ bool Publisher::publishBufferedJson(const String& body) {
 
 bool Publisher::publish(const Measurement& m) {
   if(!cfg_.measurement.publishHttp && !cfg_.measurement.publishMqtt) return true;
-  bool ok = httpPost(json(m)) || mqttPost(json(m));
-  if (!ok) log_.warn("Publish failed\n");
-  return ok;
+
+  const String body = json(m);
+  const bool httpOk = httpPost(body);
+  const bool mqttOk = mqttPost(body);
+
+  if (!(httpOk || mqttOk)) log_.warn("Publish failed\n");
+  
+  return httpOk || mqttOk;
+
 }
 
 void Publisher::retryBuffered() { /* Reserved for persistent replay; current v2 buffers JSON in the application. */
