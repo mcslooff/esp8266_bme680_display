@@ -107,7 +107,12 @@ bool Publisher::mqttPost(const String& body) {
   }
 
   log_.debug("begin message\n");
-  mqttClient_.beginMessage(cfg_.mqtt.producerTopic);
+
+  mqttClient_.beginMessage(
+      cfg_.mqtt.producerTopic,
+      static_cast<unsigned long>(body.length())
+  );
+
   mqttClient_.print(body);
   mqttClient_.endMessage();
   log_.debug("end message\n");
