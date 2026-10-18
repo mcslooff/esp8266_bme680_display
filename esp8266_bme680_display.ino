@@ -110,6 +110,14 @@ static int max(int val1, int val2) {
   return val2 > val1 ? val2 : val1;
 }
 
+static bool checkbox(String fieldName) {
+    if (server.hasArg(fieldName)) {
+      return server.arg(fieldName) == "on";
+    } else {
+      return false;
+    }
+}
+
 static void handleRoot() {
   if (!auth()) return;
   if (server.method() == HTTP_POST) {
@@ -187,6 +195,11 @@ static void handleRoot() {
       if (p >= 1 && p <= 65535) config.server.port = p;
     }
 
+    config.measurement.gasResistance = checkbox("sampleVoc");
+    config.measurement.humidity = checkbox("sampleHumidity");
+    config.measurement.pressure = checkbox("samplePressure");
+    config.measurement.temperature = checkbox("sampleTemperature");
+ 
     if(!configStore.save(config))
       Serial.println("Failed to save configuration");
 
