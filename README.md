@@ -34,6 +34,12 @@ The legacy configuration format at EEPROM offset 0/2 is detected and migrated to
 - Gas resistance is named `gasResistance`; the old `VOC` label was a naming mistake.
 - Logger variadic formatting is fixed.
 
+## PlatformIO CLI
+Run `pio run` from the repository root to build the NodeMCU firmware.
+The output is `.pio/build/nodemcuv2/firmware.bin`.
+`src/main.cpp` includes the root sketch for PlatformIO, bypassing automatic
+prototype generation that misinterprets the embedded JavaScript.
+
 ## Arduino IDE
 Open `esp8266_bme680_display_v2.ino` after copying the `src` files into the sketch folder, or use PlatformIO directly.
 

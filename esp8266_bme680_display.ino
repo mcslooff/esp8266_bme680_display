@@ -49,7 +49,8 @@ MeasurementStore measurements(120);
 BME680Sensor sensor(bme, -4.0f);  // retain legacy correction
 WifiManager wifi(logger);
 DisplayManager displayManager(display, measurements, battery, config);
-Publisher publisher(config, measurements, logger, mqttClient);
+MqttPublisher mqttPublisher(mqttClient, config.mqtt, logger);
+Publisher publisher(config, measurements, logger, mqttPublisher);
 
 uint32_t lastSampleMillis = 0;
 uint32_t lastWarmupMillis = 0;
