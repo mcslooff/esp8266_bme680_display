@@ -1,7 +1,6 @@
 #include "Publisher.h"
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
-#include <ArduinoMqttClient.h>
 #include <FS.h>
 #include <base64.h>
 #include "../system/Version.h"
@@ -80,77 +79,6 @@ String Publisher::getDeviceId() const
     return id;
 }
 
-bool Publisher::mqttPost(const String& body) {
-
-  if(!cfg_.measurement.publishMqtt) return true;
-
-  if (cfg_.mqtt.username[0]) {
-    mqttClient_.setUsernamePassword(
-      cfg_.mqtt.username,
-      cfg_.mqtt.password
-    );
-  }
-
-  log_.debug("Checking MQTT connection\n");
-  if (!mqttClient_.connect(cfg_.mqtt.broker, cfg_.mqtt.port)) {
-
-
-
-    log_.error(
-      "Failed to connect to MQTT broker %s:%d; error code=%d, %s\n",
-      cfg_.mqtt.broker,
-      cfg_.mqtt.port,
-      mqttClient_.connectError(),
-      translateMqttErrorCode(mqttClient_.connectError())
-    );
-    return false;
-  }
-
-  log_.debug("begin message\n");
-
-  mqttClient_.beginMessage(
-      cfg_.mqtt.producerTopic,
-      static_cast<unsigned long>(body.length())
-  );
-
-  mqttClient_.print(body);
-  mqttClient_.endMessage();
-  log_.debug("end message\n");
-
-  return true;
-}
-
-String Publisher::translateMqttErrorCode(const int code) {
-  switch (code) {
-    case MQTT_CONNECTION_REFUSED:
-      return "Connection refused";
-
-    case MQTT_CONNECTION_TIMEOUT:
-      return "Connection timed out";
-
-    case MQTT_SUCCESS:
-      return "Success";
-
-    case MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
-      return "Unacceptable MQTT protocol version";
-
-    case MQTT_IDENTIFIER_REJECTED:
-      return "Client identifier rejected";
-
-    case MQTT_SERVER_UNAVAILABLE:
-      return "MQTT server unavailable";
-
-    case MQTT_BAD_USER_NAME_OR_PASSWORD:
-      return "Bad username or password";
-
-    case MQTT_NOT_AUTHORIZED:
-      return "Not authorized";
-
-    default:
-      return String("Unknown MQTT error (") + code + ")";
-  }
-}
-
 bool Publisher::httpPost(const String& body) {
 
   uint16_t timeout = 5000;
@@ -206,7 +134,7 @@ bool Publisher::httpPost(const String& body) {
 }
 
 bool Publisher::publishBufferedJson(const String& body) {
-  bool mqttOk = mqttPost(body);
+  bool mqttOk = !cfg_.measurement.publishMqtt || mqttPublisher_.publish(body);
   bool httpOk = httpPost(body);
 
   return httpOk || mqttOk;
@@ -217,7 +145,7 @@ bool Publisher::publish(const Measurement& m) {
 
   const String body = json(m);
   const bool httpOk = httpPost(body);
-  const bool mqttOk = mqttPost(body);
+  const bool mqttOk = !cfg_.measurement.publishMqtt || mqttPublisher_.publish(body);
 
   if (!(httpOk || mqttOk)) log_.warn("Publish failed\n");
   

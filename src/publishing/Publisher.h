@@ -3,12 +3,12 @@
 #include "../config/ConfigManager.h"
 #include "../storage/MeasurementStore.h"
 #include "../system/Logger.h"
-#include <ArduinoMqttClient.h>
+#include "MqttPublisher.h"
 
 class Publisher {
 public:
-  Publisher(const AppConfig& cfg, MeasurementStore& store, Logger& log, MqttClient& mqttClient)
-    : cfg_(cfg), store_(store), log_(log), mqttClient_(mqttClient) {}
+  Publisher(const AppConfig& cfg, MeasurementStore& store, Logger& log, MqttPublisher& mqttPublisher)
+    : cfg_(cfg), store_(store), log_(log), mqttPublisher_(mqttPublisher) {}
   bool publish(const Measurement& m);
   String jsonEscape(const String& in);
   bool publishBufferedJson(const String& body);
@@ -18,9 +18,7 @@ private:
   const AppConfig& cfg_;
   MeasurementStore& store_;
   Logger& log_;
-  MqttClient& mqttClient_;
-  bool mqttPost(const String& body);
+  MqttPublisher& mqttPublisher_;
   bool httpPost(const String& body);
   String getDeviceId() const;
-  String translateMqttErrorCode(const int code);
 };
