@@ -4,14 +4,15 @@
 #include "../system/Logger.h"
 
 class MqttPublisher {
-public:
+ public:
   MqttPublisher(AsyncMqttClient& client, const MqttConfiguration& cfg, Logger& log);
   MqttPublisher(const MqttPublisher&) = delete;
   MqttPublisher& operator=(const MqttPublisher&) = delete;
   void update(uint32_t now);
   // Success means accepted by the async client, not acknowledged by the broker (QoS 0).
   bool publish(const String& payload);
-private:
+
+ private:
   enum class State { Disconnected, Connecting, Connected };
   static constexpr uint32_t INITIAL_RETRY_MS = 5000;
   static constexpr uint32_t MAX_RETRY_MS = 300000;
@@ -33,7 +34,7 @@ private:
   bool retryScheduled_ = false;
   bool disconnectPending_ = false;
   AsyncMqttClientDisconnectReason disconnectReason_ =
-    AsyncMqttClientDisconnectReason::TCP_DISCONNECTED;
+      AsyncMqttClientDisconnectReason::TCP_DISCONNECTED;
 
   void scheduleRetry(uint32_t now, const char* reason);
   void logStatus(uint32_t now);

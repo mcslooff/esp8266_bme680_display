@@ -1,0 +1,83 @@
+name: Quality gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  firmware:
+    name: ESP8266 build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Install pinned tools
+        run: python -m pip install -r tools/requirements-ci.txt
+      - name: Compile NodeMCU firmware
+        run: pio run --environment nodemcuv2
+      - name: Upload firmware for review (no device flashing)
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: nodemcuv2-firmware
+          path: |
+            .pio/build/nodemcuv2/firmware.bin
+            .pio/build/nodemcuv2/firmware.elf
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+
+  formatting:
+    name: C++ formatting
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Install pinned tools
+        run: python -m pip install -r tools/requirements-ci.txt
+      - name: Check repository formatting (never auto-commit)
+        run: python tools/format.py --check
+
+  tests:
+    name: Host tests and coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - name: Install pinned tools
+        run: python -m pip install -r tools/requirements-ci.txt
+      - name: Host tests with warnings as errors and memory/undefined-behavior checks
+        run: bash tests/host/run.sh --sanitize
+      - name: Enforce production publishing coverage
+        run: bash tests/host/run.sh --coverage
+      - name: Upload coverage reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: publishing-coverage
+          path: build/coverage/
+          if-no-files-found: ignore
+          retention-days: 7

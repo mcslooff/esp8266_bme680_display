@@ -1,1 +1,4 @@
 .pio/
+/build/
+/.venv/
+/.config/

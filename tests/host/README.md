@@ -2,6 +2,18 @@
 
 Run `bash tests/host/run.sh` with a C++11 compiler (`g++` by default).
 
+Additional CI modes (also documented in the root README):
+
+- `bash tests/host/run.sh --sanitize`: warnings as errors, address/leak and
+  undefined-behavior checks; any diagnostic aborts the run.
+- `bash tests/host/run.sh --coverage`: warnings as errors and gcovr line/branch
+  gates from `gcovr.cfg`. Install `tools/requirements-ci.txt` in a virtual
+  environment first. Reports go to `build/coverage/`.
+
+Each mode uses a fresh temporary directory, so stale coverage data cannot mask
+a regression. Compiler failures, assertion failures and coverage failures return
+a nonzero exit status. Assertions are enabled; these are not release-mode tests.
+
 These tests compile the production publishing classes against small host fakes
 for Arduino, asynchronous MQTT and HTTP. They cover transport selection, full
 payloads larger than 256 bytes, buffered payload forwarding, credentials,

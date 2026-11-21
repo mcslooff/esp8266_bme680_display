@@ -2,8 +2,8 @@
 #include <FS.h>
 #include <time.h>
 
-static const uint8_t degree_icon[8] = { 0x40, 0xA0, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00 };
-static const uint8_t ohm_icon[8] = { 0x00, 0x3C, 0x42, 0x42, 0x24, 0x24, 0xC3, 0x00 };
+static const uint8_t degree_icon[8] = {0x40, 0xA0, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const uint8_t ohm_icon[8] = {0x00, 0x3C, 0x42, 0x42, 0x24, 0x24, 0xC3, 0x00};
 
 void DisplayManager::begin() {
   display_.clearDisplay();
@@ -24,7 +24,8 @@ void DisplayManager::toggle() {
     on_ = false;
     display_.clearDisplay();
     display_.display();
-  } else wake();
+  } else
+    wake();
 }
 void DisplayManager::next() {
   screen_ = static_cast<Screen>((screen_ + 1) % SCREEN_COUNT);
@@ -128,10 +129,11 @@ void DisplayManager::graph(uint8_t type) {
   Measurement m;
   for (size_t i = 0; i < n; i++) {
     store_.get(i, m);
-    float v = type == 0 ? m.temperature : type == 1 ? m.humidity
-                                        : type == 2 ? m.gasResistanceKOhm()
-                                        : type == 3 ? m.pressureHpa()
-                                                    : m.batteryVoltage;
+    float v = type == 0   ? m.temperature
+              : type == 1 ? m.humidity
+              : type == 2 ? m.gasResistanceKOhm()
+              : type == 3 ? m.pressureHpa()
+                          : m.batteryVoltage;
     lo = min(lo, v);
     hi = max(hi, v);
   }
@@ -143,20 +145,22 @@ void DisplayManager::graph(uint8_t type) {
     size_t idx = (size_t)((uint32_t)x * n / usableW);
     if (idx >= n) idx = n - 1;
     store_.get(idx, m);
-    float v = type == 0 ? m.temperature : type == 1 ? m.humidity
-                                        : type == 2 ? m.gasResistanceKOhm()
-                                        : type == 3 ? m.pressureHpa()
-                                                    : m.batteryVoltage;
+    float v = type == 0   ? m.temperature
+              : type == 1 ? m.humidity
+              : type == 2 ? m.gasResistanceKOhm()
+              : type == 3 ? m.pressureHpa()
+                          : m.batteryVoltage;
     int y = bottom - (int)((v - lo) / (hi - lo) * (bottom - top));
     if (prevX >= 0) display_.drawLine(prevX, prevY, x, y, SSD1306_WHITE);
     prevX = x;
     prevY = y;
   }
   display_.setCursor(0, 0);
-  const char* label = type == 0 ? "Temp" : type == 1 ? "Hum"
-                                         : type == 2 ? "Gas kOhm"
-                                         : type == 3 ? "hPa"
-                                                     : "Volt";
+  const char* label = type == 0   ? "Temp"
+                      : type == 1 ? "Hum"
+                      : type == 2 ? "Gas kOhm"
+                      : type == 3 ? "hPa"
+                                  : "Volt";
   display_.print(label);
   display_.setCursor(72, 0);
   display_.printf("%.1f", hi);
@@ -165,7 +169,7 @@ void DisplayManager::graph(uint8_t type) {
 }
 void DisplayManager::connection() {
   display_.clearDisplay();
-  
+
   if (strcmp(cfg_.mode, "WiFiAccessPoint") == 0) {
     text("AP:", 0, 0);
     text(cfg_.accessPoint.SSID, 24, 0);
@@ -174,7 +178,8 @@ void DisplayManager::connection() {
     text(cfg_.station.SSID, 30, 10);
   }
   text("IP:", 0, 20);
-  String ip = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
+  String ip =
+      WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
   text(ip.c_str(), 20, 20);
 }
 void DisplayManager::datetime() {
@@ -209,16 +214,37 @@ void DisplayManager::spiffs() {
 }
 void DisplayManager::render() {
   switch (screen_) {
-    case LAST: last(); break;
-    case BATTERY: batteryScreen(); break;
-    case TEMP: graph(0); break;
-    case HUM: graph(1); break;
-    case GAS: graph(2); break;
-    case PRESSURE: graph(3); break;
-    case BATGRAPH: graph(4); break;
-    case CONNECTION: connection(); break;
-    case DATETIME: datetime(); break;
-    case SPIFFS: spiffs(); break;
-    default: last();
+    case LAST:
+      last();
+      break;
+    case BATTERY:
+      batteryScreen();
+      break;
+    case TEMP:
+      graph(0);
+      break;
+    case HUM:
+      graph(1);
+      break;
+    case GAS:
+      graph(2);
+      break;
+    case PRESSURE:
+      graph(3);
+      break;
+    case BATGRAPH:
+      graph(4);
+      break;
+    case CONNECTION:
+      connection();
+      break;
+    case DATETIME:
+      datetime();
+      break;
+    case SPIFFS:
+      spiffs();
+      break;
+    default:
+      last();
   }
 }

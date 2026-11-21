@@ -73,7 +73,7 @@ static void safeCopy(char* dst, size_t n, const String& src) {
 }
 
 static bool parseIPv4(const String& s, uint8_t out[4]) {
-  int parts[4] = { 0 };
+  int parts[4] = {0};
   int p = 0, start = 0;
   for (int i = 0; i <= s.length(); ++i) {
     if (i == s.length() || s[i] == '.') {
@@ -100,45 +100,59 @@ static String jsonEscape(const String& in) {
   for (size_t i = 0; i < in.length(); ++i) {
     char c = in[i];
     if (c == '"' || c == '\\') o += '\\';
-    if (c == '\n') o += "\\n";
-    else o += c;
+    if (c == '\n')
+      o += "\\n";
+    else
+      o += c;
   }
   return o;
 }
 
-static int max(int val1, int val2) {
-  return val2 > val1 ? val2 : val1;
-}
+static int max(int val1, int val2) { return val2 > val1 ? val2 : val1; }
 
 static bool checkbox(String fieldName) {
-    if (server.hasArg(fieldName)) {
-      return server.arg(fieldName) == "on";
-    } else {
-      return false;
-    }
+  if (server.hasArg(fieldName)) {
+    return server.arg(fieldName) == "on";
+  } else {
+    return false;
+  }
 }
 
 static void handleRoot() {
   if (!auth()) return;
   if (server.method() == HTTP_POST) {
-    if(server.hasArg("mode")) safeCopy(config.mode, sizeof(config.mode), server.arg("mode"));
+    if (server.hasArg("mode")) safeCopy(config.mode, sizeof(config.mode), server.arg("mode"));
 
-    if (server.hasArg("accessPointSSID")) safeCopy(config.accessPoint.SSID, sizeof(config.accessPoint.SSID), server.arg("accessPointSSID"));
-    if (server.hasArg("accessPointPassword") && !server.arg("accessPointPassword").isEmpty()) safeCopy(config.accessPoint.password, sizeof(config.accessPoint.password), server.arg("accessPointPassword"));
-    if (server.hasArg("accessPointIPAddress")) parseIPv4(server.arg("accessPointIPAddress"), config.accessPoint.IP);
-    
-    if (server.hasArg("stationSSID")) safeCopy(config.station.SSID, sizeof(config.station.SSID), server.arg("stationSSID"));
-    if (server.hasArg("stationPassword") && !server.arg("stationPassword").isEmpty()) safeCopy(config.station.password, sizeof(config.station.password), server.arg("stationPassword"));
-    if (server.hasArg("stationHostname")) safeCopy(config.station.hostname, sizeof(config.station.hostname), server.arg("stationHostname"));
-    
+    if (server.hasArg("accessPointSSID"))
+      safeCopy(config.accessPoint.SSID, sizeof(config.accessPoint.SSID),
+               server.arg("accessPointSSID"));
+    if (server.hasArg("accessPointPassword") && !server.arg("accessPointPassword").isEmpty())
+      safeCopy(config.accessPoint.password, sizeof(config.accessPoint.password),
+               server.arg("accessPointPassword"));
+    if (server.hasArg("accessPointIPAddress"))
+      parseIPv4(server.arg("accessPointIPAddress"), config.accessPoint.IP);
+
+    if (server.hasArg("stationSSID"))
+      safeCopy(config.station.SSID, sizeof(config.station.SSID), server.arg("stationSSID"));
+    if (server.hasArg("stationPassword") && !server.arg("stationPassword").isEmpty())
+      safeCopy(config.station.password, sizeof(config.station.password),
+               server.arg("stationPassword"));
+    if (server.hasArg("stationHostname"))
+      safeCopy(config.station.hostname, sizeof(config.station.hostname),
+               server.arg("stationHostname"));
+
     if (server.hasArg("requireAuthentication")) {
-       config.server.requireAuthentication = server.arg("requireAuthentication") == "on";
+      config.server.requireAuthentication = server.arg("requireAuthentication") == "on";
     } else {
       config.server.requireAuthentication = false;
     }
-    if (server.hasArg("authenticationUsername")) safeCopy(config.server.username, sizeof(config.server.username), server.arg("authenticationUsername"));
-    if (server.hasArg("authenticationPassword") && !server.arg("authenticationPassword").isEmpty()) safeCopy(config.server.password, sizeof(config.server.password), server.arg("authenticationPassword"));
-    
+    if (server.hasArg("authenticationUsername"))
+      safeCopy(config.server.username, sizeof(config.server.username),
+               server.arg("authenticationUsername"));
+    if (server.hasArg("authenticationPassword") && !server.arg("authenticationPassword").isEmpty())
+      safeCopy(config.server.password, sizeof(config.server.password),
+               server.arg("authenticationPassword"));
+
     if (server.hasArg("publishHttpPost")) {
       config.measurement.publishHttp = server.arg("publishHttpPost") == "on";
     } else {
@@ -149,8 +163,10 @@ static void handleRoot() {
     } else {
       config.measurement.publishMqtt = false;
     }
-    if (server.hasArg("sampleInterval")) config.measurement.sampleIntervalSeconds = max(1, server.arg("sampleInterval").toInt());
-    if (server.hasArg("publishHumidity")) config.measurement.humidity = server.arg("publishHumidity") == "on";
+    if (server.hasArg("sampleInterval"))
+      config.measurement.sampleIntervalSeconds = max(1, server.arg("sampleInterval").toInt());
+    if (server.hasArg("publishHumidity"))
+      config.measurement.humidity = server.arg("publishHumidity") == "on";
     if (server.hasArg("publishTemperature")) {
       config.measurement.temperature = server.arg("publishTemperature") == "on";
     } else {
@@ -166,16 +182,28 @@ static void handleRoot() {
     } else {
       config.measurement.gasResistance = false;
     }
-    
-    if (server.hasArg("publishURL")) safeCopy(config.httpPost.url, sizeof(config.httpPost.url), server.arg("publishURL"));
-    if (server.hasArg("publishingUsername")) safeCopy(config.httpPost.username, sizeof(config.httpPost.username), server.arg("publishingUsername"));
-    if (server.hasArg("publishingPassword") && !server.arg("publishingPassword").isEmpty()) safeCopy(config.httpPost.password, sizeof(config.httpPost.password), server.arg("publishingPassword"));
 
-    if (server.hasArg("mqttBrokerAddress")) safeCopy(config.mqtt.broker, sizeof(config.mqtt.broker), server.arg("mqttBrokerAddress"));
-    if (server.hasArg("mqttUsername")) safeCopy(config.mqtt.username, sizeof(config.mqtt.username), server.arg("mqttUsername"));
-    if (server.hasArg("mqttPassword")) safeCopy(config.mqtt.password, sizeof(config.mqtt.password), server.arg("mqttPassword"));
-    if (server.hasArg("mqttPublishTopic")) safeCopy(config.mqtt.producerTopic, sizeof(config.mqtt.producerTopic), server.arg("mqttPublishTopic"));
-    if (server.hasArg("mqttListenerTopic")) safeCopy(config.mqtt.listenerTopic, sizeof(config.mqtt.listenerTopic), server.arg("mqttListenerTopic"));
+    if (server.hasArg("publishURL"))
+      safeCopy(config.httpPost.url, sizeof(config.httpPost.url), server.arg("publishURL"));
+    if (server.hasArg("publishingUsername"))
+      safeCopy(config.httpPost.username, sizeof(config.httpPost.username),
+               server.arg("publishingUsername"));
+    if (server.hasArg("publishingPassword") && !server.arg("publishingPassword").isEmpty())
+      safeCopy(config.httpPost.password, sizeof(config.httpPost.password),
+               server.arg("publishingPassword"));
+
+    if (server.hasArg("mqttBrokerAddress"))
+      safeCopy(config.mqtt.broker, sizeof(config.mqtt.broker), server.arg("mqttBrokerAddress"));
+    if (server.hasArg("mqttUsername"))
+      safeCopy(config.mqtt.username, sizeof(config.mqtt.username), server.arg("mqttUsername"));
+    if (server.hasArg("mqttPassword"))
+      safeCopy(config.mqtt.password, sizeof(config.mqtt.password), server.arg("mqttPassword"));
+    if (server.hasArg("mqttPublishTopic"))
+      safeCopy(config.mqtt.producerTopic, sizeof(config.mqtt.producerTopic),
+               server.arg("mqttPublishTopic"));
+    if (server.hasArg("mqttListenerTopic"))
+      safeCopy(config.mqtt.listenerTopic, sizeof(config.mqtt.listenerTopic),
+               server.arg("mqttListenerTopic"));
 
     if (server.hasArg("mqttPort")) {
       int p = server.arg("mqttPort").toInt();
@@ -188,7 +216,8 @@ static void handleRoot() {
       config.ntp.useNTP = false;
     }
     if (server.hasArg("NTPOffset")) config.ntp.NTPOffset = server.arg("NTPOffset").toInt();
-    if (server.hasArg("NTPPoolURL")) safeCopy(config.ntp.NTPPoolURL, sizeof(config.ntp.NTPPoolURL), server.arg("NTPPoolURL"));
+    if (server.hasArg("NTPPoolURL"))
+      safeCopy(config.ntp.NTPPoolURL, sizeof(config.ntp.NTPPoolURL), server.arg("NTPPoolURL"));
 
     if (server.hasArg("serverPort")) {
       int p = server.arg("serverPort").toInt();
@@ -199,11 +228,11 @@ static void handleRoot() {
     config.measurement.humidity = checkbox("sampleHumidity");
     config.measurement.pressure = checkbox("samplePressure");
     config.measurement.temperature = checkbox("sampleTemperature");
- 
-    if(!configStore.save(config))
-      Serial.println("Failed to save configuration");
 
-    server.send(200, "text/html", "<html><body><h2>Settings saved</h2><p>Rebooting...</p></body></html>");
+    if (!configStore.save(config)) Serial.println("Failed to save configuration");
+
+    server.send(200, "text/html",
+                "<html><body><h2>Settings saved</h2><p>Rebooting...</p></body></html>");
     delay(250);
     ESP.restart();
     return;
@@ -323,7 +352,7 @@ function setFormData() {
 static String modeJson() {
   String s = "[{\"value\": \"WiFiAccessPoint\",\"text\": \"WiFiAccessPoint\",\"selected\":";
   s += (strcmp(config.mode, "WiFiAccessPoint") == 0 ? "true" : "false");
-  s += "},{\"value\": \"WiFiClient\",\"text\": \"WiFiClient\",\"selected\": "; 
+  s += "},{\"value\": \"WiFiClient\",\"text\": \"WiFiClient\",\"selected\": ";
   s += (strcmp(config.mode, "WiFiClient") == 0 ? "true" : "false");
   s += "}]";
   return s;
@@ -333,46 +362,45 @@ static void handleSettings() {
   if (!auth()) return;
   String ap = WiFi.softAPIP().toString(), sta = WiFi.localIP().toString();
 
-  String s = "{\"mode\":" + modeJson() + "," +
-             "\"accessPointSSID\":\"" + jsonEscape(config.accessPoint.SSID) + "\"," +
-             "\"accessPointPassword\":\"" + jsonEscape(config.accessPoint.password) + "\"," + 
-             "\"accessPointIPAddress\":\"" + IPAddress(config.accessPoint.IP).toString() + "\"," + 
+  String s =
+      "{\"mode\":" + modeJson() + "," + "\"accessPointSSID\":\"" +
+      jsonEscape(config.accessPoint.SSID) + "\"," + "\"accessPointPassword\":\"" +
+      jsonEscape(config.accessPoint.password) + "\"," + "\"accessPointIPAddress\":\"" +
+      IPAddress(config.accessPoint.IP).toString() + "\"," +
 
-             "\"stationSSID\":" + wifi.networksJson(config.station.SSID) + "," + 
-             "\"stationPassword\":\"" + jsonEscape(config.station.password) + "\"," + 
-             "\"stationIP\":\"" + sta + "\"," +
-             "\"stationHostname\":\"" + jsonEscape(config.station.hostname) + "\"," + 
+      "\"stationSSID\":" + wifi.networksJson(config.station.SSID) + "," + "\"stationPassword\":\"" +
+      jsonEscape(config.station.password) + "\"," + "\"stationIP\":\"" + sta + "\"," +
+      "\"stationHostname\":\"" + jsonEscape(config.station.hostname) + "\"," +
 
-             "\"serverPort\":" + String(config.server.port) + "," +
-             "\"requireAuthentication\":" + String(config.server.requireAuthentication ? "true" : "false") + "," + 
-             "\"authenticationUsername\":\"" + jsonEscape(config.server.username) + "\"," +
-             "\"authenticationPassword\":\"" + jsonEscape(config.server.password) + "\"," +
+      "\"serverPort\":" + String(config.server.port) + "," + "\"requireAuthentication\":" +
+      String(config.server.requireAuthentication ? "true" : "false") + "," +
+      "\"authenticationUsername\":\"" + jsonEscape(config.server.username) + "\"," +
+      "\"authenticationPassword\":\"" + jsonEscape(config.server.password) + "\"," +
 
-             "\"publishHttpPost\":" + String(config.measurement.publishHttp ? "true" : "false") + "," +
-             "\"publishMqtt\":" + String(config.measurement.publishMqtt ? "true" : "false") + "," +
-             "\"sampleInterval\":" + String(config.measurement.sampleIntervalSeconds) + "," + 
-             "\"sampleTemperature\":" + String(config.measurement.temperature ? "true" : "false") + "," +
-             "\"sampleHumidity\":" + String(config.measurement.humidity ? "true" : "false") + "," +
-             "\"samplePressure\":" + String(config.measurement.pressure ? "true" : "false") + "," +
-             "\"sampleVoc\":" + String(config.measurement.gasResistance ? "true" : "false") + "," +
+      "\"publishHttpPost\":" + String(config.measurement.publishHttp ? "true" : "false") + "," +
+      "\"publishMqtt\":" + String(config.measurement.publishMqtt ? "true" : "false") + "," +
+      "\"sampleInterval\":" + String(config.measurement.sampleIntervalSeconds) + "," +
+      "\"sampleTemperature\":" + String(config.measurement.temperature ? "true" : "false") + "," +
+      "\"sampleHumidity\":" + String(config.measurement.humidity ? "true" : "false") + "," +
+      "\"samplePressure\":" + String(config.measurement.pressure ? "true" : "false") + "," +
+      "\"sampleVoc\":" + String(config.measurement.gasResistance ? "true" : "false") + "," +
 
-             "\"publishURL\":\"" + jsonEscape(config.httpPost.url) + "\"," + 
-             "\"publishingUsername\":\"" + jsonEscape(config.httpPost.username) + "\"," + 
-             "\"publishingPassword\":\"" + jsonEscape(config.httpPost.password) + "\"," + 
+      "\"publishURL\":\"" + jsonEscape(config.httpPost.url) + "\"," + "\"publishingUsername\":\"" +
+      jsonEscape(config.httpPost.username) + "\"," + "\"publishingPassword\":\"" +
+      jsonEscape(config.httpPost.password) + "\"," +
 
-             "\"mqttBrokerAddress\":\"" + jsonEscape(config.mqtt.broker) + "\"," +
-             "\"mqttPort\":" + config.mqtt.port + "," +
-             "\"mqttUsername\":\"" + jsonEscape(config.mqtt.username) + "\"," +
-             "\"mqttPassword\":\"" + jsonEscape(config.mqtt.password) + "\"," +
-             "\"mqttPublishTopic\":\"" + jsonEscape(config.mqtt.producerTopic) + "\"," +
-             "\"mqttListenerTopic\":\"" + jsonEscape(config.mqtt.listenerTopic) + "\"," +
+      "\"mqttBrokerAddress\":\"" + jsonEscape(config.mqtt.broker) + "\"," +
+      "\"mqttPort\":" + config.mqtt.port + "," + "\"mqttUsername\":\"" +
+      jsonEscape(config.mqtt.username) + "\"," + "\"mqttPassword\":\"" +
+      jsonEscape(config.mqtt.password) + "\"," + "\"mqttPublishTopic\":\"" +
+      jsonEscape(config.mqtt.producerTopic) + "\"," + "\"mqttListenerTopic\":\"" +
+      jsonEscape(config.mqtt.listenerTopic) + "\"," +
 
-             "\"useNTP\":" + String(config.ntp.useNTP ? "true" : "false") + "," + 
-             "\"NTPOffset\":" + String(config.ntp.NTPOffset) + "," + 
-             "\"NTPPoolURL\":\"" + jsonEscape(config.ntp.NTPPoolURL) + "\"," +
-             
-             "\"apIP\":\"" + ap + "\"" +
-             "}";
+      "\"useNTP\":" + String(config.ntp.useNTP ? "true" : "false") + "," +
+      "\"NTPOffset\":" + String(config.ntp.NTPOffset) + "," + "\"NTPPoolURL\":\"" +
+      jsonEscape(config.ntp.NTPPoolURL) + "\"," +
+
+      "\"apIP\":\"" + ap + "\"" + "}";
   server.send(200, "application/json", s);
 }
 
@@ -386,7 +414,8 @@ static void handleSensorRead() {
     server.send(200, "application/json", publisher.json(m));
   } else {
     Measurement empty;
-    server.send(503, "application/json", "{\"resultCode\":10,\"resultText\":\"Failed to perform reading\"}");
+    server.send(503, "application/json",
+                "{\"resultCode\":10,\"resultText\":\"Failed to perform reading\"}");
   }
 }
 
@@ -401,15 +430,30 @@ static void handleStatus() {
   s += "Battery: " + String(battery.readVoltage(), 3) + " V\n";
   s += "Samples: " + String(measurements.size()) + "/" + String(measurements.capacity()) + "\n";
   s += "Last measurement: " + String((unsigned long)lastMeasurement) + "\n";
-  if (measurements.latest(m)) s += "Temperature: " + String(m.temperature, 2) + " C\nHumidity: " + String(m.humidity, 2) + " %\nPressure: " + String(m.pressureHpa(), 2) + " hPa\nGas: " + String(m.gasResistanceKOhm(), 2) + " kOhm\nDew point: " + String(m.dewPoint(), 2) + " C\n";
+  if (measurements.latest(m))
+    s += "Temperature: " + String(m.temperature, 2) + " C\nHumidity: " + String(m.humidity, 2) +
+         " %\nPressure: " + String(m.pressureHpa(), 2) +
+         " hPa\nGas: " + String(m.gasResistanceKOhm(), 2) +
+         " kOhm\nDew point: " + String(m.dewPoint(), 2) + " C\n";
   s += "</pre></body></html>";
   server.send(200, "text/html", s);
 }
 
 static void handleStatusJson() {
   Measurement m;
-  String s = "{\"version\":\"" + String(Version::SOFTWARE_VERSION) + "\",\"stationName\":\"" + jsonEscape(config.station.hostname) + "\",\"accessPointIP\":\"" + wifi.apIP() + "\",\"stationIP\":\"" + wifi.localIP() + "\",\"powerVoltage\":" + String(battery.readVoltage(), 3) + ",\"systemTime\":" + String((unsigned long)time(nullptr)) + ",\"upTime\":" + String(millis()) + ",\"lastSampleTime\":" + String((unsigned long)lastMeasurement) + ",\"sampleCount\":" + String(measurements.size());
-  if (measurements.latest(m)) s += ",\"temperature\":" + String(m.temperature, 3) + ",\"humidity\":" + String(m.humidity, 3) + ",\"airpressure\":" + String(m.pressureHpa(), 3) + ",\"gasResistance\":" + String(m.gasResistanceOhm, 1) + ",\"batteryPercent\":" + String(m.batteryPercent(), 2);
+  String s = "{\"version\":\"" + String(Version::SOFTWARE_VERSION) + "\",\"stationName\":\"" +
+             jsonEscape(config.station.hostname) + "\",\"accessPointIP\":\"" + wifi.apIP() +
+             "\",\"stationIP\":\"" + wifi.localIP() +
+             "\",\"powerVoltage\":" + String(battery.readVoltage(), 3) +
+             ",\"systemTime\":" + String((unsigned long)time(nullptr)) +
+             ",\"upTime\":" + String(millis()) +
+             ",\"lastSampleTime\":" + String((unsigned long)lastMeasurement) +
+             ",\"sampleCount\":" + String(measurements.size());
+  if (measurements.latest(m))
+    s += ",\"temperature\":" + String(m.temperature, 3) + ",\"humidity\":" + String(m.humidity, 3) +
+         ",\"airpressure\":" + String(m.pressureHpa(), 3) +
+         ",\"gasResistance\":" + String(m.gasResistanceOhm, 1) +
+         ",\"batteryPercent\":" + String(m.batteryPercent(), 2);
   s += '}';
   server.send(200, "application/json", s);
 }
@@ -417,20 +461,17 @@ static void handleStatusJson() {
 static void handleAPScan() {
   if (!auth()) return;
   wifi.scan();
-  server.send(200, "application/json", "{\"accessPointList\":" + wifi.networksJson(config.station.SSID) + "}");
+  server.send(200, "application/json",
+              "{\"accessPointList\":" + wifi.networksJson(config.station.SSID) + "}");
 }
 
-static void handleCSS() {
-  server.send(200, "text/css", "body{font-family:sans-serif}");
-}
+static void handleCSS() { server.send(200, "text/css", "body{font-family:sans-serif}"); }
 
 static void handleJS() {
   server.send(200, "application/javascript", "console.log('ESP8266 BME680 v2');");
 }
 
-static void handleNotFound() {
-  server.send(404, "text/plain", "Not found: " + server.uri());
-}
+static void handleNotFound() { server.send(404, "text/plain", "Not found: " + server.uri()); }
 
 static bool bufferMeasurement(const Measurement& m) {
   if (!SPIFFS.exists(BUFFER_FILE)) {
@@ -452,8 +493,7 @@ static bool bufferMeasurement(const Measurement& m) {
 }
 
 static void tryPublish() {
-
-  if(!config.measurement.publishHttp && !config.measurement.publishMqtt) {
+  if (!config.measurement.publishHttp && !config.measurement.publishMqtt) {
     return;
   }
 
@@ -477,8 +517,8 @@ static void tryPublish() {
         lineCount++;
         // If ublishing fails write buffered line to temp buffer.
         if (publisher.publishBufferedJson(line)) {
-          count++; 
-          continue; 
+          count++;
+          continue;
         }
         allOk = false;
         out.println(line);
@@ -510,14 +550,14 @@ static void tryPublish() {
 }
 
 static bool sample() {
-
   const uint32_t now = millis();
   Measurement m;
   if (sensor.read(battery.readVoltage(), m)) {
     measurements.add(m);
     lastMeasurement = m.timestamp;
     lastSampleMillis = now;
-    logger.info("Measurement: %.2f C, %.2f %% RH, %.2f hPa, %.2f kOhm\n", m.temperature, m.humidity, m.pressureHpa(), m.gasResistanceKOhm());
+    logger.info("Measurement: %.2f C, %.2f %% RH, %.2f hPa, %.2f kOhm\n", m.temperature, m.humidity,
+                m.pressureHpa(), m.gasResistanceKOhm());
     return true;
   }
   return false;
@@ -558,14 +598,13 @@ static void buttons() {
 }
 
 /*
-  Reset to factory default when the middle button remains 
+  Reset to factory default when the middle button remains
   pressed for over 5 seconds during boot sequence.
 */
 bool factoryResetRequested() {
   pinMode(BUTTON_B, INPUT_PULLUP);
 
-  if (digitalRead(BUTTON_B) != LOW)
-    return false;
+  if (digitalRead(BUTTON_B) != LOW) return false;
 
   const uint32_t start = millis();
 
@@ -615,7 +654,7 @@ void loadConfiguration() {
 
     delay(500);
   }
-  /* Make sure that when configuration is not correctly 
+  /* Make sure that when configuration is not correctly
      loaded we reset to factory defaults.
   */
   if (!configStore.load(config)) {
@@ -624,7 +663,6 @@ void loadConfiguration() {
   }
 
   configStore.load(config);
-
 }
 
 void setupWiFi() {

@@ -40,6 +40,46 @@ The output is `.pio/build/nodemcuv2/firmware.bin`.
 `src/main.cpp` includes the root sketch for PlatformIO, bypassing automatic
 prototype generation that misinterprets the embedded JavaScript.
 
+## GitHub quality gates
+
+Pull requests and pushes to `main` run `.github/workflows/quality.yml`:
+
+- **ESP8266 build**: compile the real NodeMCU firmware with pinned PlatformIO,
+  platform and direct library versions; retain `.bin`/`.elf` artifacts for 7 days.
+- **C++ formatting**: clang-format 18.1.8 checks all project C++/Arduino sources
+  and host test fakes against `.clang-format`. CI never rewrites or commits files.
+- **Host tests and coverage**: compile with warnings as errors, run AddressSanitizer
+  and UndefinedBehaviorSanitizer, then enforce at least **80% line and 80% branch
+  coverage of production publishing code**. HTML, JSON and Cobertura reports are
+  retained for 7 days, including when a coverage threshold fails.
+
+Coverage does not include host fakes or unrelated hardware code. Compiler-generated
+unreachable/exception-only branches are excluded; normal application branches are
+counted. Passing CI is not proof of physical WiFi, broker recovery, sensors or
+display behavior. Continue to use the device smoke test for those checks.
+
+Run the same gates locally (Linux, Python 3.9+ and a `g++`/`gcov` toolchain):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r tools/requirements-ci.txt
+python tools/format.py --check
+bash tests/host/run.sh --sanitize
+bash tests/host/run.sh --coverage
+pio run --environment nodemcuv2
+```
+
+Use `python tools/format.py --fix` to apply formatting. Coverage reports are written
+to `build/coverage/`; build products, `.venv` and external dependencies are not
+formatting inputs.
+
+To make these checks block merges, after the first workflow run configure a
+GitHub branch ruleset for `main` requiring **ESP8266 build**, **C++ formatting** and
+**Host tests and coverage**. The workflow alone does not enable branch protection.
+Checks run for all PR changes (no path filters), so required checks are not left
+pending when only documentation changes.
+
 ## MQTT recovery
 
 MQTT uses `AsyncMqttClient` 0.9.0 and the ESP8266-specific `ESPAsyncTCP` 2.0.0.

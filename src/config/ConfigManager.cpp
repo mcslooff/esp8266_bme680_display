@@ -1,9 +1,7 @@
 #include "ConfigManager.h"
 #include <string.h>
 
-void ConfigManager::begin() {
-  EEPROM.begin(EEPROM_SIZE);
-}
+void ConfigManager::begin() { EEPROM.begin(EEPROM_SIZE); }
 uint32_t ConfigManager::crc32(const uint8_t* data, size_t len) const {
   uint32_t crc = 0xFFFFFFFFUL;
   while (len--) {
@@ -15,7 +13,8 @@ uint32_t ConfigManager::crc32(const uint8_t* data, size_t len) const {
 bool ConfigManager::load(AppConfig& cfg) {
   Header h{};
   EEPROM.get(0, h);
-  if (h.magic == MAGIC && h.version == VERSION && h.size == sizeof(AppConfig) && CONFIG_OFFSET + (int)h.size <= EEPROM_SIZE) {
+  if (h.magic == MAGIC && h.version == VERSION && h.size == sizeof(AppConfig) &&
+      CONFIG_OFFSET + (int)h.size <= EEPROM_SIZE) {
     Serial.println(crc32(reinterpret_cast<const uint8_t*>(&cfg), sizeof(cfg)));
     EEPROM.get(CONFIG_OFFSET, cfg);
     return crc32(reinterpret_cast<const uint8_t*>(&cfg), sizeof(cfg)) == h.crc;

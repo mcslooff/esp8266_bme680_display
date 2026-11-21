@@ -26,16 +26,28 @@ bool MeasurementStore::get(size_t index, Measurement& out) const {
 
 bool MeasurementStore::average(size_t start, size_t end, Measurement& out) const {
   if (start > end || end >= count_) return false;
-  double t=0,h=0,p=0,g=0,b=0; size_t n=0; Measurement m;
-  for (size_t i=start; i<=end; ++i) {
-    if (!get(i,m)) continue;
-    t += m.temperature; h += m.humidity; p += m.pressurePa;
-    g += m.gasResistanceOhm; b += m.batteryVoltage; ++n;
+  double t = 0, h = 0, p = 0, g = 0, b = 0;
+  size_t n = 0;
+  Measurement m;
+  for (size_t i = start; i <= end; ++i) {
+    if (!get(i, m)) continue;
+    t += m.temperature;
+    h += m.humidity;
+    p += m.pressurePa;
+    g += m.gasResistanceOhm;
+    b += m.batteryVoltage;
+    ++n;
   }
   if (!n) return false;
   out.timestamp = time(nullptr);
-  out.temperature=t/n; out.humidity=h/n; out.pressurePa=p/n;
-  out.gasResistanceOhm=g/n; out.batteryVoltage=b/n;
+  out.temperature = t / n;
+  out.humidity = h / n;
+  out.pressurePa = p / n;
+  out.gasResistanceOhm = g / n;
+  out.batteryVoltage = b / n;
   return true;
 }
-void MeasurementStore::clear() { count_=0; head_=0; }
+void MeasurementStore::clear() {
+  count_ = 0;
+  head_ = 0;
+}
