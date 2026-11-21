@@ -2,9 +2,8 @@
 #include <ESP8266WiFi.h>
 #include <string.h>
 
-MqttPublisher::MqttPublisher(
-    AsyncMqttClient& client, const MqttConfiguration& cfg, Logger& log)
-  : client_(client), cfg_(cfg), log_(log) {
+MqttPublisher::MqttPublisher(AsyncMqttClient& client, const MqttConfiguration& cfg, Logger& log)
+    : client_(client), cfg_(cfg), log_(log) {
   client_.setKeepAlive(60);  // Preserve the previous client's keep-alive interval.
   // ESP8266 callbacks run cooperatively. Defer logging and retry scheduling to
   // update(), and never start another connection from a network callback.
@@ -18,38 +17,36 @@ void MqttPublisher::scheduleRetry(uint32_t now, const char* reason) {
   state_ = State::Disconnected;
   retryStartedAt_ = now;
   retryDelay_ = nextRetryDelay_;
-  nextRetryDelay_ = nextRetryDelay_ < MAX_RETRY_MS / 2
-    ? nextRetryDelay_ * 2 : MAX_RETRY_MS;
+  nextRetryDelay_ = nextRetryDelay_ < MAX_RETRY_MS / 2 ? nextRetryDelay_ * 2 : MAX_RETRY_MS;
   retryScheduled_ = true;
   log_.warn(
-    "MQTT state=disconnected broker=%s:%d reason=%s; retry in %lu seconds "
-    "[attempt=%lu backoff_ms=%lu uptime_ms=%lu]\n",
-    cfg_.broker, cfg_.port, reason, static_cast<unsigned long>(retryDelay_ / 1000),
-    static_cast<unsigned long>(attemptCount_), static_cast<unsigned long>(retryDelay_),
-    static_cast<unsigned long>(now));
+      "MQTT state=disconnected broker=%s:%d reason=%s; retry in %lu seconds "
+      "[attempt=%lu backoff_ms=%lu uptime_ms=%lu]\n",
+      cfg_.broker, cfg_.port, reason, static_cast<unsigned long>(retryDelay_ / 1000),
+      static_cast<unsigned long>(attemptCount_), static_cast<unsigned long>(retryDelay_),
+      static_cast<unsigned long>(now));
 }
 
 void MqttPublisher::logStatus(uint32_t now) {
   const int wifiStatus = WiFi.status();
   if (statusLogged_ && wifiStatus == lastWifiStatus_ &&
-      uint32_t(now - lastStatusAt_) < STATUS_INTERVAL_MS) return;
+      uint32_t(now - lastStatusAt_) < STATUS_INTERVAL_MS)
+    return;
   statusLogged_ = true;
   lastWifiStatus_ = wifiStatus;
   lastStatusAt_ = now;
   const bool connected = client_.connected();
-  const char* state = connected ? "connected" :
-    (state_ == State::Connecting ? "connecting" : "disconnected");
+  const char* state =
+      connected ? "connected" : (state_ == State::Connecting ? "connecting" : "disconnected");
   const uint32_t elapsed = uint32_t(now - retryStartedAt_);
-  const uint32_t remaining = retryScheduled_ && elapsed < retryDelay_
-    ? retryDelay_ - elapsed : 0;
+  const uint32_t remaining = retryScheduled_ && elapsed < retryDelay_ ? retryDelay_ - elapsed : 0;
   log_.info(
-    "MQTT status state=%s wifi=%s wifi_status=%d broker_configured=%s "
-    "attempts=%lu backoff_ms=%lu retry_in_ms=%lu uptime_ms=%lu\n",
-    state, wifiStatus == WL_CONNECTED ? "connected" : "disconnected",
-    wifiStatus, cfg_.broker[0] ? "yes" : "no",
-    static_cast<unsigned long>(attemptCount_),
-    static_cast<unsigned long>(retryScheduled_ ? retryDelay_ : 0),
-    static_cast<unsigned long>(remaining), static_cast<unsigned long>(now));
+      "MQTT status state=%s wifi=%s wifi_status=%d broker_configured=%s "
+      "attempts=%lu backoff_ms=%lu retry_in_ms=%lu uptime_ms=%lu\n",
+      state, wifiStatus == WL_CONNECTED ? "connected" : "disconnected", wifiStatus,
+      cfg_.broker[0] ? "yes" : "no", static_cast<unsigned long>(attemptCount_),
+      static_cast<unsigned long>(retryScheduled_ ? retryDelay_ : 0),
+      static_cast<unsigned long>(remaining), static_cast<unsigned long>(now));
 }
 
 void MqttPublisher::update(uint32_t now) {
@@ -62,9 +59,9 @@ void MqttPublisher::update(uint32_t now) {
       retryScheduled_ = false;
       nextRetryDelay_ = INITIAL_RETRY_MS;
       log_.info(
-        "MQTT state=connected broker=%s:%d attempt=%lu backoff_reset_ms=%lu uptime_ms=%lu\n",
-        cfg_.broker, cfg_.port, static_cast<unsigned long>(attemptCount_),
-        static_cast<unsigned long>(INITIAL_RETRY_MS), static_cast<unsigned long>(now));
+          "MQTT state=connected broker=%s:%d attempt=%lu backoff_reset_ms=%lu uptime_ms=%lu\n",
+          cfg_.broker, cfg_.port, static_cast<unsigned long>(attemptCount_),
+          static_cast<unsigned long>(INITIAL_RETRY_MS), static_cast<unsigned long>(now));
       if (cfg_.listenerTopic[0] && !client_.subscribe(cfg_.listenerTopic, 0)) {
         log_.warn("Failed to subscribe to MQTT topic %s\n", cfg_.listenerTopic);
       }
@@ -102,10 +99,9 @@ void MqttPublisher::update(uint32_t now) {
   ++attemptCount_;
   const uint32_t previousBackoff = retryScheduled_ ? retryDelay_ : 0;
   retryScheduled_ = false;
-  log_.info(
-    "MQTT state=connecting broker=%s:%d attempt=%lu backoff_ms=%lu uptime_ms=%lu\n",
-    cfg_.broker, cfg_.port, static_cast<unsigned long>(attemptCount_),
-    static_cast<unsigned long>(previousBackoff), static_cast<unsigned long>(now));
+  log_.info("MQTT state=connecting broker=%s:%d attempt=%lu backoff_ms=%lu uptime_ms=%lu\n",
+            cfg_.broker, cfg_.port, static_cast<unsigned long>(attemptCount_),
+            static_cast<unsigned long>(previousBackoff), static_cast<unsigned long>(now));
   // Both DNS lookup and TCP/MQTT handshakes are asynchronous on ESP8266.
   client_.connect();
 }
@@ -129,8 +125,7 @@ bool MqttPublisher::publish(const String& payload) {
   return true;
 }
 
-const char* MqttPublisher::translateDisconnectReason(
-    AsyncMqttClientDisconnectReason reason) const {
+const char* MqttPublisher::translateDisconnectReason(AsyncMqttClientDisconnectReason reason) const {
   switch (reason) {
     case AsyncMqttClientDisconnectReason::TCP_DISCONNECTED:
       return "network/DNS/TCP connection lost or failed";

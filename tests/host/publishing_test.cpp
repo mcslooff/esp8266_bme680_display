@@ -246,7 +246,9 @@ void connectionTraceLogging() {
   assert(Serial.output.find("attempt=2 backoff_ms=5000 uptime_ms=35002") != std::string::npos);
   f.client.completeConnect();
   f.mqtt.update(35003);
-  assert(Serial.output.find("state=connected broker=broker.test:1883 attempt=2 backoff_reset_ms=5000") != std::string::npos);
+  assert(Serial.output.find(
+             "state=connected broker=broker.test:1883 attempt=2 backoff_reset_ms=5000") !=
+         std::string::npos);
   assert(Serial.output.find("do-not-log-this") == std::string::npos);
 
   Fixture rollover;

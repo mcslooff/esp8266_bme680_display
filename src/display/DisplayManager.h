@@ -9,10 +9,11 @@
 #include "../config/ConfigManager.h"
 
 class DisplayManager {
-public:
+ public:
   static constexpr int WIDTH = 128, HEIGHT = 32;
-  DisplayManager(Adafruit_SSD1306& display, MeasurementStore& store, BatteryMonitor& battery, const AppConfig& cfg)
-    : display_(display), store_(store), battery_(battery), cfg_(cfg) {}
+  DisplayManager(Adafruit_SSD1306& display, MeasurementStore& store, BatteryMonitor& battery,
+                 const AppConfig& cfg)
+      : display_(display), store_(store), battery_(battery), cfg_(cfg) {}
   void begin();
   void update();
   void wake();
@@ -22,24 +23,23 @@ public:
   void addConnectionScreen();
   void addDateTimeScreen();
   void addSpiffsScreen();
-  void setLogoTime(uint32_t ms) {
-    logoTime_ = ms;
-  }
-  void setAutoOffTime(uint32_t ms) {
-    sleepTime_ = ms;
-  }
-private:
-  enum Screen : uint8_t { LAST,
-                          BATTERY,
-                          TEMP,
-                          HUM,
-                          GAS,
-                          PRESSURE,
-                          BATGRAPH,
-                          CONNECTION,
-                          DATETIME,
-                          SPIFFS,
-                          SCREEN_COUNT };
+  void setLogoTime(uint32_t ms) { logoTime_ = ms; }
+  void setAutoOffTime(uint32_t ms) { sleepTime_ = ms; }
+
+ private:
+  enum Screen : uint8_t {
+    LAST,
+    BATTERY,
+    TEMP,
+    HUM,
+    GAS,
+    PRESSURE,
+    BATGRAPH,
+    CONNECTION,
+    DATETIME,
+    SPIFFS,
+    SCREEN_COUNT
+  };
   Adafruit_SSD1306& display_;
   MeasurementStore& store_;
   BatteryMonitor& battery_;

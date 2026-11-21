@@ -9,12 +9,13 @@
 #include <string>
 
 using std::isfinite;
-template <typename T> T constrain(T value, T low, T high) {
+template <typename T>
+T constrain(T value, T low, T high) {
   return std::min(high, std::max(low, value));
 }
 
 class String {
-public:
+ public:
   String() = default;
   String(const char* value) : value_(value) {}
   String(const std::string& value) : value_(value) {}
@@ -29,8 +30,14 @@ public:
   const char* c_str() const { return value_.c_str(); }
   char operator[](size_t index) const { return value_[index]; }
   void reserve(size_t size) { value_.reserve(size); }
-  String& operator+=(const String& other) { value_ += other.value_; return *this; }
-  String& operator+=(char other) { value_ += other; return *this; }
+  String& operator+=(const String& other) {
+    value_ += other.value_;
+    return *this;
+  }
+  String& operator+=(char other) {
+    value_ += other;
+    return *this;
+  }
   friend String operator+(String left, const String& right) { return left += right; }
   void replace(const char* from, const char* to) {
     size_t index = 0;
@@ -42,7 +49,8 @@ public:
   void toUpperCase() {
     for (char& c : value_) c = static_cast<char>(std::toupper(c));
   }
-private:
+
+ private:
   std::string value_;
 };
 

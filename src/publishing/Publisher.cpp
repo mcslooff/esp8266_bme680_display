@@ -11,58 +11,48 @@ String Publisher::jsonEscape(const String& in) {
   for (size_t i = 0; i < in.length(); ++i) {
     char c = in[i];
     if (c == '"' || c == '\\') o += '\\';
-    if (c == '\n') o += "\\n";
-    else o += c;
+    if (c == '\n')
+      o += "\\n";
+    else
+      o += c;
   }
   return o;
 }
 
 String Publisher::json(const Measurement& m) {
-  String s = 
-  String("{") +
-  "  \"timestamp\": " + String((unsigned long)m.timestamp) + "," +
-  "  \"station\" : {" +
-  "    \"id\": \"" + jsonEscape(getDeviceId()) + "\"," +
-  "    \"name\": \"" + jsonEscape(cfg_.station.hostname) + "\"," +
-  "    \"version\": \""+ String(Version::SOFTWARE_VERSION) + "\"," +
-  "    \"power\": {" +
-  "      \"voltage\": " + String(m.batteryVoltage, 3) +
-  "    }" +
-  "  }," + 
-  "  \"measurement\": ";
+  String s = String("{") + "  \"timestamp\": " + String((unsigned long)m.timestamp) + "," +
+             "  \"station\" : {" + "    \"id\": \"" + jsonEscape(getDeviceId()) + "\"," +
+             "    \"name\": \"" + jsonEscape(cfg_.station.hostname) + "\"," +
+             "    \"version\": \"" + String(Version::SOFTWARE_VERSION) + "\"," +
+             "    \"power\": {" + "      \"voltage\": " + String(m.batteryVoltage, 3) + "    }" +
+             "  }," + "  \"measurement\": ";
   bool prev = false;
-  if(cfg_.measurement.temperature || cfg_.measurement.pressure || cfg_.measurement.humidity || cfg_.measurement.gasResistance) {
+  if (cfg_.measurement.temperature || cfg_.measurement.pressure || cfg_.measurement.humidity ||
+      cfg_.measurement.gasResistance) {
     s += "{";
-      if(cfg_.measurement.temperature) {
-        s+= String("    \"temperature\": {") +
-            "      \"value\": " + String(m.temperature, 3) + "," +
-            "      \"unit\": \"C\"" +
-            "    }";
-        prev = true;
-      }
-      if(cfg_.measurement.pressure) {
-        s+= String(prev ? "," : "");
-        s+= String("    \"airPressure\": {") +
-            "      \"value\": " + String(m.pressureHpa(), 3) + "," +
-            "      \"unit\": \"hPa\"" +
-            "    }";
-        prev = true;
-      }
-      if(cfg_.measurement.humidity) {
-        s+= String(prev ? "," : "");
-        s+= String("    \"humidity\": {") +
-            "      \"value\": " + String(m.humidity, 3) + "," +
-            "      \"unit\": \"%\"" +
-            "    }";
-        prev = true;
-      }
-      if(cfg_.measurement.gasResistance) {
-        s+= String(prev ? "," : "");
-        s+= String("    \"gasResistance\": {") +
-            "      \"value\": " + String(m.gasResistanceOhm, 1) + "," +
-            "      \"unit\": \"kOhm\"" +
-            "    }";
-      }
+    if (cfg_.measurement.temperature) {
+      s += String("    \"temperature\": {") + "      \"value\": " + String(m.temperature, 3) + "," +
+           "      \"unit\": \"C\"" + "    }";
+      prev = true;
+    }
+    if (cfg_.measurement.pressure) {
+      s += String(prev ? "," : "");
+      s += String("    \"airPressure\": {") + "      \"value\": " + String(m.pressureHpa(), 3) +
+           "," + "      \"unit\": \"hPa\"" + "    }";
+      prev = true;
+    }
+    if (cfg_.measurement.humidity) {
+      s += String(prev ? "," : "");
+      s += String("    \"humidity\": {") + "      \"value\": " + String(m.humidity, 3) + "," +
+           "      \"unit\": \"%\"" + "    }";
+      prev = true;
+    }
+    if (cfg_.measurement.gasResistance) {
+      s += String(prev ? "," : "");
+      s += String("    \"gasResistance\": {") +
+           "      \"value\": " + String(m.gasResistanceOhm, 1) + "," + "      \"unit\": \"kOhm\"" +
+           "    }";
+    }
     s += String("}");
   } else {
     s += String("null");
@@ -71,18 +61,16 @@ String Publisher::json(const Measurement& m) {
   return s;
 }
 
-String Publisher::getDeviceId() const
-{
-    String id = WiFi.macAddress();
-    id.replace(":", "");
-    id.toUpperCase();
-    return id;
+String Publisher::getDeviceId() const {
+  String id = WiFi.macAddress();
+  id.replace(":", "");
+  id.toUpperCase();
+  return id;
 }
 
 bool Publisher::httpPost(const String& body) {
-
   uint16_t timeout = 5000;
-  if(!cfg_.measurement.publishHttp) return true;
+  if (!cfg_.measurement.publishHttp) return true;
   if (!cfg_.httpPost.url[0] || WiFi.status() != WL_CONNECTED) return false;
   WiFiClient client;
   HTTPClient http;
@@ -92,14 +80,11 @@ bool Publisher::httpPost(const String& body) {
 
   // Add HTTP Basic Authentication when credentials are configured.
   if (cfg_.httpPost.username[0]) {
-    http.setAuthorization(
-      cfg_.httpPost.username,
-      cfg_.httpPost.password
-    );
+    http.setAuthorization(cfg_.httpPost.username, cfg_.httpPost.password);
   }
   int code = http.POST(body);
 
-  if(code == HTTPC_ERROR_CONNECTION_FAILED) {
+  if (code == HTTPC_ERROR_CONNECTION_FAILED) {
     log_.warn("connection failed\n");
     http.end();
     return false;
@@ -121,10 +106,8 @@ bool Publisher::httpPost(const String& body) {
 
   if (code < 200 || code >= 300) {
     String responseBody = http.getString();
-    log_.warn(
-      "HTTP publish to %s failed with code %d and response body '%s'\n",
-      cfg_.httpPost.url, code, responseBody
-    );
+    log_.warn("HTTP publish to %s failed with code %d and response body '%s'\n", cfg_.httpPost.url,
+              code, responseBody);
     log_.warn("%s", body);
   }
 
@@ -142,17 +125,17 @@ bool Publisher::publishBufferedJson(const String& body) {
 }
 
 bool Publisher::publish(const Measurement& m) {
-  if(!cfg_.measurement.publishHttp && !cfg_.measurement.publishMqtt) return true;
+  if (!cfg_.measurement.publishHttp && !cfg_.measurement.publishMqtt) return true;
 
   const String body = json(m);
   const bool httpOk = cfg_.measurement.publishHttp && httpPost(body);
   const bool mqttOk = cfg_.measurement.publishMqtt && mqttPublisher_.publish(body);
 
   if (!(httpOk || mqttOk)) log_.warn("Publish failed\n");
-  
-  return httpOk || mqttOk;
 
+  return httpOk || mqttOk;
 }
 
-void Publisher::retryBuffered() { /* Reserved for persistent replay; current v2 buffers JSON in the application. */
+void Publisher::retryBuffered() { /* Reserved for persistent replay; current v2 buffers JSON in the
+                                     application. */
 }

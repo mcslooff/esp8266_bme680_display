@@ -1,18 +1,18 @@
 #include "BME680Sensor.h"
 
 bool BME680Sensor::begin() {
-    if (sensor_.begin(0x76)) {
-		  initialized_ = true;
-      return true;
-    }
+  if (sensor_.begin(0x76)) {
+    initialized_ = true;
+    return true;
+  }
 
-    if (sensor_.begin(0x77)) {
-		  initialized_ = true;
-      return true;
-    }
+  if (sensor_.begin(0x77)) {
+    initialized_ = true;
+    return true;
+  }
 
-    initialized_ = false;
-    return false;
+  initialized_ = false;
+  return false;
 }
 
 void BME680Sensor::warmupSensor(uint16_t seconds) {
@@ -25,9 +25,7 @@ void BME680Sensor::warmupSensor(uint16_t seconds) {
   }
 }
 
-bool BME680Sensor::warmupRead() {
-  return initialized_ && sensor_.performReading();
-}
+bool BME680Sensor::warmupRead() { return initialized_ && sensor_.performReading(); }
 
 bool BME680Sensor::read(float batteryVoltage, Measurement& out) {
   if (!initialized_ || !sensor_.performReading()) return false;
