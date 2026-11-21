@@ -14,7 +14,7 @@
 #include <Adafruit_BME680.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <ArduinoMqttClient.h>
+#include <AsyncMqttClient.h>
 
 #include "src/config/ConfigManager.h"
 #include "src/model/Measurement.h"
@@ -38,8 +38,7 @@ static constexpr char BUFFER_FILE[] = "buffer.json";
 Adafruit_BME680 bme;
 Adafruit_SSD1306 display(128, 32, &Wire);
 ESP8266WebServer server(80);
-WiFiClient wifiClient;
-MqttClient mqttClient(wifiClient);
+AsyncMqttClient mqttClient;
 
 ConfigManager configStore;
 AppConfig config;
@@ -458,7 +457,7 @@ static void tryPublish() {
     return;
   }
 
-  // Replay buffered HTTP measurements first. Keep the remainder when the
+  // Replay buffered measurements first. Keep the remainder when the
   // remote endpoint is still unavailable. Domoticz measurements are not
   // replayed because their legacy format contains no durable queue record.
   if (SPIFFS.exists(BUFFER_FILE)) {
@@ -674,34 +673,27 @@ void setupAPI() {
   logger.info("HTTP server started\n");
 }
 
-void onMqttMessage(int messageSize) {
-  // we received a message, print out the topic and contents
-  Serial.println("Received a message with topic '");
-  Serial.print(mqttClient.messageTopic());
-  Serial.print("', length ");
-  Serial.print(messageSize);
-  Serial.println(" bytes:");
-
-  // use the Stream interface to print the contents
-  while (mqttClient.available()) {
-    Serial.print((char)mqttClient.read());
+void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties,
+                   size_t length, size_t index, size_t total) {
+  (void)properties;
+  if (index == 0) {
+    Serial.println("Received a message with topic '");
+    Serial.print(topic);
+    Serial.print("', length ");
+    Serial.print(total);
+    Serial.println(" bytes:");
   }
-  Serial.println();
-  Serial.println();
+  // Async messages may arrive in chunks and are not null-terminated.
+  Serial.write(reinterpret_cast<const uint8_t*>(payload), length);
+  if (index + length == total) {
+    Serial.println();
+    Serial.println();
+  }
 }
 
 void setupMqtt() {
-  
-  if(config.mqtt.broker[0]) {
-    if (!mqttClient.connect(config.mqtt.broker, config.mqtt.port)) {
-      Serial.println(mqttClient.connectError());
-    }
-
-    if(config.mqtt.listenerTopic[0]) {
-      mqttClient.onMessage(onMqttMessage);
-      mqttClient.subscribe(config.mqtt.listenerTopic);
-    }
-  }
+  mqttClient.onMessage(onMqttMessage);
+  // Connections and listener subscription are managed by MqttPublisher::update().
 }
 
 void setup() {
@@ -717,20 +709,19 @@ void setup() {
   setupMqtt();
   // Set last sample timestamp to now so first sample is delayed with sample-interval seconds.
   lastSampleMillis = millis() - ((uint32_t)config.measurement.sampleIntervalSeconds * 1000UL);
-  logger.setLogLevel(1);
+  logger.setLogLevel(LOG_INFO);
 }
 
 void loop() {
   server.handleClient();
   wifi.update();
+  if (config.measurement.publishMqtt || config.mqtt.listenerTopic[0]) {
+    mqttPublisher.update(millis());
+  }
   buttons();
   sampleIfDue();
   displayManager.update();
 
-  if(config.mqtt.broker[0]) {
-    // call poll() regularly to allow the library to send MQTT keep alive which
-    // avoids being disconnected by the broker
-    mqttClient.poll();
-  }
+  // The asynchronous MQTT client handles network I/O and keep-alive callbacks.
   yield();
 }

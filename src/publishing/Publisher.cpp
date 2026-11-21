@@ -134,8 +134,9 @@ bool Publisher::httpPost(const String& body) {
 }
 
 bool Publisher::publishBufferedJson(const String& body) {
-  bool mqttOk = !cfg_.measurement.publishMqtt || mqttPublisher_.publish(body);
-  bool httpOk = httpPost(body);
+  if (!cfg_.measurement.publishHttp && !cfg_.measurement.publishMqtt) return true;
+  bool mqttOk = cfg_.measurement.publishMqtt && mqttPublisher_.publish(body);
+  bool httpOk = cfg_.measurement.publishHttp && httpPost(body);
 
   return httpOk || mqttOk;
 }
@@ -144,8 +145,8 @@ bool Publisher::publish(const Measurement& m) {
   if(!cfg_.measurement.publishHttp && !cfg_.measurement.publishMqtt) return true;
 
   const String body = json(m);
-  const bool httpOk = httpPost(body);
-  const bool mqttOk = !cfg_.measurement.publishMqtt || mqttPublisher_.publish(body);
+  const bool httpOk = cfg_.measurement.publishHttp && httpPost(body);
+  const bool mqttOk = cfg_.measurement.publishMqtt && mqttPublisher_.publish(body);
 
   if (!(httpOk || mqttOk)) log_.warn("Publish failed\n");
   
