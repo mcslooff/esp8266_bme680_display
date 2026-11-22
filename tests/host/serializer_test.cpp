@@ -3,6 +3,7 @@
 
 void serializationTests() {
   Fixture contract;
+  contract.measurement.gasResistanceOhm = 261728;
   std::strcpy(contract.cfg.station.hostname, "Room \"A\"\\\n\r\t\001");
   // Parsed independently by Python's standard JSON parser in the normal runner.
   std::cout << "SERIALIZER_CONTRACT " << contract.json().c_str() << '\n';
