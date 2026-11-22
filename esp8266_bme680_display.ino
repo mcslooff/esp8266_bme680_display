@@ -45,7 +45,7 @@ AppConfig config;
 Logger logger;
 BatteryMonitor battery(ADC_MULTIPLIER);
 MeasurementStore measurements(120);
-BME680Sensor sensor(bme, -4.0f);  // retain legacy correction
+BME680Sensor sensor(bme);
 WifiManager wifi(logger);
 DisplayManager displayManager(display, measurements, battery, config);
 MqttPublisher mqttPublisher(mqttClient, config.mqtt, logger);
