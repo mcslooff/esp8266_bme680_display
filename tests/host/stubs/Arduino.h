@@ -29,7 +29,18 @@ class String {
   size_t length() const { return value_.size(); }
   const char* c_str() const { return value_.c_str(); }
   char operator[](size_t index) const { return value_[index]; }
-  void reserve(size_t size) { value_.reserve(size); }
+  bool reserve(size_t size) {
+    value_.reserve(size);
+    return true;
+  }
+  void trim() {
+    const auto first = value_.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) {
+      value_.clear();
+      return;
+    }
+    value_ = value_.substr(first, value_.find_last_not_of(" \t\r\n") - first + 1);
+  }
   String& operator+=(const String& other) {
     value_ += other.value_;
     return *this;

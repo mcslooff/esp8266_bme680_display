@@ -1,8 +1,5 @@
 #include "Publisher.h"
-#include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
-#include <FS.h>
-#include <base64.h>
 #include "../system/Version.h"
 
 String Publisher::jsonEscape(const String& in) {
@@ -68,74 +65,29 @@ String Publisher::getDeviceId() const {
   return id;
 }
 
-bool Publisher::httpPost(const String& body) {
-  uint16_t timeout = 5000;
-  if (!cfg_.measurement.publishHttp) return true;
-  if (!cfg_.httpPost.url[0] || WiFi.status() != WL_CONNECTED) return false;
-  WiFiClient client;
-  HTTPClient http;
-  if (!http.begin(client, cfg_.httpPost.url)) return false;
-  http.setTimeout(timeout);
-  http.addHeader("Content-Type", "application/json");
-
-  // Add HTTP Basic Authentication when credentials are configured.
-  if (cfg_.httpPost.username[0]) {
-    http.setAuthorization(cfg_.httpPost.username, cfg_.httpPost.password);
-  }
-  int code = http.POST(body);
-
-  if (code == HTTPC_ERROR_CONNECTION_FAILED) {
-    log_.warn("connection failed\n");
-    http.end();
-    return false;
-  }
-
-  if (code == HTTPC_ERROR_READ_TIMEOUT) {
-    log_.warn("HTTP response to %s timed out after %d ms\n", cfg_.httpPost.url, timeout);
-    http.end();
-    return false;
-  }
-
-#ifdef HTTPC_ERROR_CONNECTION_TIMEOUT
-  if (code == HTTPC_ERROR_CONNECTION_TIMEOUT) {
-    log_.warn("HTTP connection %s timed out after %d ms\n", cfg_.httpPost.url, timeout);
-    http.end();
-    return false;
-  }
-#endif
-
-  if (code < 200 || code >= 300) {
-    String responseBody = http.getString();
-    log_.warn("HTTP publish to %s failed with code %d and response body '%s'\n", cfg_.httpPost.url,
-              code, responseBody);
-    log_.warn("%s", body);
-  }
-
-  http.end();
-
-  return code >= 200 && code < 300;
+PublicationResult Publisher::publishBufferedJson(const String& body, uint32_t now) {
+  if (result_ == PublicationResult::Pending) return PublicationResult::Failed;
+  if (!cfg_.measurement.publishHttp && !cfg_.measurement.publishMqtt)
+    return result_ = PublicationResult::Succeeded;
+  mqttSucceeded_ = cfg_.measurement.publishMqtt && mqttPublisher_.publish(body);
+  const PublicationResult http =
+      cfg_.measurement.publishHttp ? httpPublisher_.publish(body, now) : PublicationResult::Failed;
+  if (http == PublicationResult::Pending) return result_ = http;
+  return result_ = mqttSucceeded_ || http == PublicationResult::Succeeded
+                       ? PublicationResult::Succeeded
+                       : PublicationResult::Failed;
 }
 
-bool Publisher::publishBufferedJson(const String& body) {
-  if (!cfg_.measurement.publishHttp && !cfg_.measurement.publishMqtt) return true;
-  bool mqttOk = cfg_.measurement.publishMqtt && mqttPublisher_.publish(body);
-  bool httpOk = cfg_.measurement.publishHttp && httpPost(body);
-
-  return httpOk || mqttOk;
+PublicationResult Publisher::publish(const Measurement& m, uint32_t now) {
+  return publishBufferedJson(json(m), now);
 }
 
-bool Publisher::publish(const Measurement& m) {
-  if (!cfg_.measurement.publishHttp && !cfg_.measurement.publishMqtt) return true;
-
-  const String body = json(m);
-  const bool httpOk = cfg_.measurement.publishHttp && httpPost(body);
-  const bool mqttOk = cfg_.measurement.publishMqtt && mqttPublisher_.publish(body);
-
-  if (!(httpOk || mqttOk)) log_.warn("Publish failed\n");
-
-  return httpOk || mqttOk;
-}
-
-void Publisher::retryBuffered() { /* Reserved for persistent replay; current v2 buffers JSON in the
-                                     application. */
+void Publisher::update(uint32_t now) {
+  httpPublisher_.update(now);
+  if (result_ == PublicationResult::Pending &&
+      httpPublisher_.result() != PublicationResult::Pending) {
+    result_ = mqttSucceeded_ || httpPublisher_.result() == PublicationResult::Succeeded
+                  ? PublicationResult::Succeeded
+                  : PublicationResult::Failed;
+  }
 }
