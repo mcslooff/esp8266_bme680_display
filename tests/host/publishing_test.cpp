@@ -1,50 +1,11 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
-#include <ESP8266HTTPClient.h>
-#include "../../src/publishing/Publisher.h"
+#include "PublishingFixture.h"
 
 SerialStub Serial;
 WiFiStub WiFi;
 EspStub ESP;
-int HTTPClient::calls = 0;
-int HTTPClient::result = 200;
-std::string HTTPClient::payload;
-
-struct Fixture {
-  AppConfig cfg;
-  Logger log;
-  AsyncMqttClient client;
-  MeasurementStore store{0};
-  MqttPublisher mqtt{client, cfg.mqtt, log};
-  Publisher publisher{cfg, store, log, mqtt};
-  Measurement measurement;
-
-  Fixture() {
-    Serial.output.clear();
-    WiFi.connectionStatus = WL_CONNECTED;
-    ESP.freeHeap = 40000;
-    HTTPClient::calls = 0;
-    HTTPClient::result = 200;
-    HTTPClient::payload.clear();
-    std::strcpy(cfg.mqtt.broker, "broker.test");
-    std::strcpy(cfg.mqtt.producerTopic, "measurements");
-    std::strcpy(cfg.httpPost.url, "http://collector.test");
-    measurement.timestamp = 123456;
-    measurement.temperature = 21.5;
-    measurement.humidity = 50;
-    measurement.pressurePa = 101325;
-    measurement.gasResistanceOhm = 12345;
-    measurement.batteryVoltage = 3.5;
-  }
-
-  void connect(uint32_t now = 0) {
-    mqtt.update(now);
-    assert(client.attemptPending && !client.connected());
-    client.completeConnect();
-    mqtt.update(now + 1);
-  }
-};
 
 size_t occurrences(const std::string& text, const std::string& needle) {
   size_t count = 0, offset = 0;
@@ -63,10 +24,17 @@ void transportModes() {
     if (mode & 2) f.connect();
     const std::string expected = f.publisher.json(f.measurement).c_str();
     assert(expected.size() > 256);
-    assert(f.publisher.publish(f.measurement));
-    assert(HTTPClient::calls == ((mode & 1) ? 1 : 0));
+    const auto result = f.publisher.publish(f.measurement, 0);
+    if (mode & 1) {
+      assert(result == PublicationResult::Pending);
+      f.completeHttp();
+    } else {
+      assert(result == PublicationResult::Succeeded);
+    }
+    assert(f.publisher.result() == PublicationResult::Succeeded);
+    assert(f.httpSocket.connectCalls == ((mode & 1) ? 1 : 0));
     assert(f.client.publishCalls == ((mode & 2) ? 1 : 0));
-    if (mode & 1) assert(HTTPClient::payload == expected);
+    if (mode & 1) assert(f.httpBody() == expected);
     if (mode & 2) {
       assert(f.client.payload == expected);
       assert(f.client.declaredSize == expected.size());
@@ -266,24 +234,26 @@ void bufferingAndSuccessRules() {
   f.cfg.measurement.publishMqtt = true;
   const String payload(std::string(1024, 'x'));
   // MQTT-only failures must propagate to the application's existing buffer path.
-  assert(!f.publisher.publish(f.measurement));
-  assert(!f.publisher.publishBufferedJson(payload));
-  assert(HTTPClient::calls == 0 && f.client.connectCalls == 0);
+  assert(f.publisher.publish(f.measurement, 0) == PublicationResult::Failed);
+  assert(f.publisher.publishBufferedJson(payload, 0) == PublicationResult::Failed);
+  assert(f.httpSocket.connectCalls == 0 && f.client.connectCalls == 0);
   f.connect();
-  assert(f.publisher.publishBufferedJson(payload));
+  assert(f.publisher.publishBufferedJson(payload, 0) == PublicationResult::Succeeded);
   assert(f.client.payload == payload.c_str());
 
   f.cfg.measurement.publishHttp = true;
   f.client.publishResult = 0;
-  assert(f.publisher.publish(f.measurement));  // HTTP success remains sufficient.
-  HTTPClient::result = HTTPC_ERROR_CONNECTION_FAILED;
-  assert(!f.publisher.publish(f.measurement));
-  assert(!f.publisher.publishBufferedJson(payload));
+  assert(f.publisher.publish(f.measurement, 0) == PublicationResult::Pending);
+  f.completeHttp();
+  assert(f.publisher.result() == PublicationResult::Succeeded);  // HTTP success is sufficient.
+  f.httpSocket.connectResult = false;
+  assert(f.publisher.publish(f.measurement, 100) == PublicationResult::Failed);
+  assert(f.publisher.publishBufferedJson(payload, 101) == PublicationResult::Failed);
   f.client.publishResult = 1;
-  assert(f.publisher.publish(f.measurement));  // MQTT success remains sufficient.
+  assert(f.publisher.publish(f.measurement, 102) == PublicationResult::Succeeded);
   f.cfg.measurement.publishMqtt = false;
-  assert(!f.publisher.publish(f.measurement));  // Disabled MQTT is not a success.
-  assert(!f.publisher.publishBufferedJson(payload));
+  assert(f.publisher.publish(f.measurement, 103) == PublicationResult::Failed);
+  assert(f.publisher.publishBufferedJson(payload, 104) == PublicationResult::Failed);
 }
 
 int main() {
@@ -295,5 +265,7 @@ int main() {
   payloadLifetimeAndFailures();
   connectionTraceLogging();
   bufferingAndSuccessRules();
+  extern void httpAndReplayTests();
+  httpAndReplayTests();
   std::cout << "Publishing/reconnect regression tests passed\n";
 }

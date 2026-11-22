@@ -30,8 +30,9 @@ binary="$workdir/publishing-test"
 "${CXX:-g++}" -std=c++11 -Wall -Wextra -Werror \
   "${flags[@]}" \
   -I tests/host/stubs \
-  tests/host/publishing_test.cpp \
+  tests/host/publishing_test.cpp tests/host/http_replay_test.cpp \
   src/publishing/Publisher.cpp src/publishing/MqttPublisher.cpp \
+  src/publishing/HttpPublisher.cpp src/publishing/BufferedPublisher.cpp \
   src/system/Logger.cpp src/storage/MeasurementStore.cpp \
   -o "$binary"
 if [[ "$mode" == --sanitize ]]; then

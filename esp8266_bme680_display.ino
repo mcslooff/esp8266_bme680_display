@@ -10,7 +10,6 @@
 #include <FS.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#include <ESP8266HTTPClient.h>
 #include <Adafruit_BME680.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -24,6 +23,7 @@
 #include "src/display/DisplayManager.h"
 #include "src/network/WifiManager.h"
 #include "src/publishing/Publisher.h"
+#include "src/publishing/BufferedPublisher.h"
 #include "src/system/Logger.h"
 #include "src/system/Version.h"
 
@@ -33,12 +33,12 @@ static constexpr uint8_t BUTTON_C = 2;
 static constexpr float ADC_MULTIPLIER = 0.0046948357f;
 static constexpr uint32_t SENSOR_WARMUP_SECONDS = 300;
 static constexpr uint32_t BUTTON_DEBOUNCE_MS = 250;
-static constexpr char BUFFER_FILE[] = "buffer.json";
 
 Adafruit_BME680 bme;
 Adafruit_SSD1306 display(128, 32, &Wire);
 ESP8266WebServer server(80);
 AsyncMqttClient mqttClient;
+AsyncClient httpClient;
 
 ConfigManager configStore;
 AppConfig config;
@@ -49,7 +49,9 @@ BME680Sensor sensor(bme, -4.0f);  // retain legacy correction
 WifiManager wifi(logger);
 DisplayManager displayManager(display, measurements, battery, config);
 MqttPublisher mqttPublisher(mqttClient, config.mqtt, logger);
-Publisher publisher(config, measurements, logger, mqttPublisher);
+HttpPublisher httpPublisher(httpClient, config.httpPost, logger);
+Publisher publisher(config, measurements, logger, mqttPublisher, httpPublisher);
+BufferedPublisher bufferedPublisher(publisher, SPIFFS, config.measurement, logger);
 
 uint32_t lastSampleMillis = 0;
 uint32_t lastWarmupMillis = 0;
@@ -473,80 +475,12 @@ static void handleJS() {
 
 static void handleNotFound() { server.send(404, "text/plain", "Not found: " + server.uri()); }
 
-static bool bufferMeasurement(const Measurement& m) {
-  if (!SPIFFS.exists(BUFFER_FILE)) {
-    File f = SPIFFS.open(BUFFER_FILE, "w");
-    if (f) f.close();
-  }
-
-  File f = SPIFFS.open(BUFFER_FILE, "a");
-  if (!f) return false;
-  if (f.size() > 2000000) {
-    f.close();
-    return false;
-  }
-
-  String body = publisher.json(m);
-  f.println(body);
-  f.close();
-  return true;
-}
-
 static void tryPublish() {
-  if (!config.measurement.publishHttp && !config.measurement.publishMqtt) {
-    return;
-  }
-
-  // Replay buffered measurements first. Keep the remainder when the
-  // remote endpoint is still unavailable. Domoticz measurements are not
-  // replayed because their legacy format contains no durable queue record.
-  if (SPIFFS.exists(BUFFER_FILE)) {
-    // Open buffer files
-    File in = SPIFFS.open(BUFFER_FILE, "r");
-    // Create backup file.
-    File out = SPIFFS.open("/buffer.tmp", "w");
-    bool allOk = true;
-    int count = 0;
-    int lineCount = 0;
-    if (in && out) {
-      while (in.available()) {
-        // Read line from buffer file.
-        String line = in.readStringUntil('\n');
-        line.trim();
-        if (!line.length()) continue;
-        lineCount++;
-        // If ublishing fails write buffered line to temp buffer.
-        if (publisher.publishBufferedJson(line)) {
-          count++;
-          continue;
-        }
-        allOk = false;
-        out.println(line);
-      }
-      logger.info("%d Lines in buffer\n", lineCount);
-      logger.info("Off-loaded %d buffered lines\n", count);
-      in.close();
-      out.close();
-      SPIFFS.remove(BUFFER_FILE);
-      if (!allOk) {
-        // Failed lines are in temp buffer rename to buffer file.
-        SPIFFS.rename("/buffer.tmp", BUFFER_FILE);
-      } else {
-        // All lines were ofloaded, remove temp buffer.
-        SPIFFS.remove("/buffer.tmp");
-      }
-    } else {
-      if (in) in.close();
-      if (out) {
-        out.close();
-        SPIFFS.remove("/buffer.tmp");
-      }
-    }
-  }
-
   Measurement m;
   if (!measurements.latest(m)) return;
-  if (!publisher.publish(m)) bufferMeasurement(m);
+  if (!bufferedPublisher.publish(m, millis())) {
+    logger.error("Measurement could not be published or buffered\n");
+  }
 }
 
 static bool sample() {
@@ -756,6 +690,7 @@ void loop() {
   if (config.measurement.publishMqtt || config.mqtt.listenerTopic[0]) {
     mqttPublisher.update(millis());
   }
+  bufferedPublisher.update(millis());
   buttons();
   sampleIfDue();
   displayManager.update();

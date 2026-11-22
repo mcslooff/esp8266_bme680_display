@@ -15,7 +15,7 @@ a regression. Compiler failures, assertion failures and coverage failures return
 a nonzero exit status. Assertions are enabled; these are not release-mode tests.
 
 These tests compile the production publishing classes against small host fakes
-for Arduino, asynchronous MQTT and HTTP. They cover transport selection, full
+for Arduino, asynchronous TCP/MQTT and a small in-memory filesystem. They cover transport selection, full
 payloads larger than 256 bytes, buffered payload forwarding, credentials,
 asynchronous completion/failure, back-off timing/cap/reset, timer rollover,
 connection timeout, WiFi gating, duplicate disconnect events, heap headroom,
@@ -24,6 +24,13 @@ Logging regressions check info-level attempt/back-off/status visibility,
 rate limiting and rollover of the status timer, and credential exclusion.
 They do not exercise real networking or replace an ESP8266 build and broker
 smoke test.
+
+The HTTP/replay regressions additionally cover partial sends, TCP backpressure,
+split/interim/malformed HTTP responses, Basic auth and URL handling, total
+timeout/cooldown with clock rollover, and rejection without exposing secrets.
+Queue integration tests retain failed HTTP records, accept samples while a
+request is stalled, enforce the per-step read/publication budget, and exercise
+buffer capacity/partial writes, recovery and reset-safe original-file retention.
 
 ## Device outage/recovery smoke check
 
@@ -40,6 +47,25 @@ After explicitly authorizing/uploading the new firmware:
    subsequent successful sampling/publication cycle.
 5. Stop the broker again after a successful reconnect and confirm the first
    retry delay is back to 5 seconds.
+
+For #11, isolate each external service failure rather than only stopping the
+combined Java application:
+
+- **HTTP only:** configure only HTTP publishing. Test both refused connections
+  and an endpoint accepting TCP but never returning response headers.
+- **MQTT only:** disable HTTP publishing and stop/restart the broker.
+- **Combined:** stop each service separately, then both together. A success
+  through either enabled transport is sufficient; MQTT QoS 0 retains its
+  existing best-effort semantics.
+
+For each mode, test with a nonempty buffer. Probe `/status/json` every second
+for at least 60 seconds during the outage; require every response within one
+second on the same LAN. Record sample timestamps/counts and verify their
+configured cadence, stable uptime, buttons/display responsiveness and no
+watchdog resets. Restore the service and confirm retained records and current
+samples arrive without rebooting; HTTP-only replay must not drain on a failed
+or incomplete HTTP response. Serial logs should show bounded failure/retry
+and replay-progress messages rather than a full-backlog retry burst.
 
 Also check the listener topic (if configured); incoming payload chunks must
 print intact, and the listener is subscribed after each clean connection.

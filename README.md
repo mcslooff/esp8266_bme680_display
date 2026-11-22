@@ -89,9 +89,9 @@ delays. Failed attempts back off for 5, 10, 20, 40, 80, 160 and at most 300
 seconds; a successful connection resets the delay. Pending attempts time out
 after 30 seconds, and attempts wait until WiFi is connected.
 
-Publishing fails immediately when disconnected, allowing the existing SPIFFS
-buffer path to retain the measurement. Buffered replay runs during the normal
-publication cycle. Either enabled transport succeeding remains sufficient;
+Publishing fails immediately when disconnected, allowing the SPIFFS buffer
+path to retain the measurement. Buffered replay advances from the main loop.
+Either enabled transport succeeding remains sufficient;
 a disabled transport no longer masks a failure of the other one.
 
 Payloads are copied with their explicit length by the asynchronous client.
@@ -109,6 +109,43 @@ gate. No credentials are included.
 
 Run `bash tests/host/run.sh` for focused host regressions; see
 `tests/host/README.md` for the device outage/recovery smoke check.
+
+## HTTP publishing and buffered replay
+
+`HttpPublisher` reuses `ESPAsyncTCP` for asynchronous DNS, connection and POST
+transmission. The supported transport is plain `http://` (no TLS changes).
+Explicit ports, paths/query strings, Basic authentication and complete
+length-delimited JSON payloads are retained. Success requires complete HTTP
+2xx response headers after the request has been queued for transmission; queue
+acceptance alone never acknowledges an HTTP-only record.
+
+There is one HTTP request in flight, a five-second total request deadline, and
+a five-second cooldown after failure. Sending is bounded to 512 bytes per
+update, with no network-wait loops. Response parsing stores only a bounded
+status line and ignores the response body; oversized/malformed headers fail
+without logging credentials or response content.
+
+`BufferedPublisher` coordinates the existing `buffer.json` newline-delimited
+records. Live requests are tried without a flash write; new samples arriving
+while a request/replay is pending are appended, and a failed live request is
+appended after completion. Replay reads at most 128 bytes per step, at least
+10 ms apart, and dispatches at most one record per step. Failures pause replay
+for five seconds instead of scanning/retrying the full backlog.
+
+The original buffer is retained until every record has succeeded through an
+enabled transport. An acknowledged replay offset is kept only in RAM: a reboot
+can resend a delivered prefix, but does not depend on deleting/replacing a
+partially replayed file. JSON, EEPROM and buffer formats are unchanged.
+The existing approximately 2 MB capacity remains bounded; full/unavailable
+storage is logged and may reject new records. Records over 4096 bytes are
+retained with a diagnostic rather than exhausting RAM (normal serializer output
+fits below this guard). This is not an exactly-once queue, and a live HTTP
+request in RAM can still be lost on power failure, as before.
+
+Failure/retry logs and rate-limited replay-progress logs are available on the
+serial port. Host coverage includes timeout, backpressure, segmented responses,
+record retention and incremental replay. Physical responsiveness, sampling and
+recovery still require the device outage test.
 
 ## Arduino IDE
 Open `esp8266_bme680_display_v2.ino` after copying the `src` files into the sketch folder, or use PlatformIO directly.
