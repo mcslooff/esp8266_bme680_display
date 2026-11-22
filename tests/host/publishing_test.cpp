@@ -22,6 +22,7 @@ size_t occurrences(const std::string& text, const std::string& needle) {
 void transportModes() {
   for (int mode = 0; mode < 4; ++mode) {
     Fixture f;
+    f.measurement.gasResistanceOhm = 261728;
     f.cfg.measurement.publishHttp = mode & 1;
     f.cfg.measurement.publishMqtt = mode & 2;
     if (mode & 2) f.connect();

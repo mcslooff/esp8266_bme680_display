@@ -90,9 +90,23 @@ during WiFi setup. `Publisher` only coordinates transport delivery.
 
 Each new publication is serialized once; the same payload is passed to HTTP,
 MQTT or buffering. Existing buffered JSON is replayed without reserialization.
-`/sensor/read` uses the same serializer. The successful JSON contract is unchanged,
-including the legacy gas-resistance raw value labeled `kOhm`; correcting that
-mismatch requires an explicit, separate contract change.
+`/sensor/read` uses the same serializer. JSON field names, nesting, unit labels,
+version and all unrelated values remain unchanged.
+
+**Gas-resistance value correction (#14):** `measurement.gasResistance.value`
+now contains kilo-ohms, matching its existing `kOhm` unit. For example,
+`261728` ohms serializes as `261.7` kilo-ohms at the existing one-decimal
+precision. Older firmware incorrectly published the raw ohm value with the same
+`kOhm` label. The correction is applied only in the serializer, so HTTP, MQTT
+and `/sensor/read` share the same value semantics. Internal measurements remain
+in ohms; the separate `/status/json` raw reading is unchanged.
+
+Consumers must use the corrected value directly as kilo-ohms; remove any
+workaround that divided the old published value by 1000. Historical data and
+existing buffered JSON are **not rewritten**: replay preserves their original
+values. Drain the old backlog before deploying if old/new semantics must not
+mix, and record the deployment cutover for historical-data handling. The
+unchanged field/unit/version alone cannot distinguish an old buffered record.
 
 Serialization uses a bounded 1024-byte scratch payload and checks allocation
 and final output-copy success. Finite numeric formatting retains Arduino String's

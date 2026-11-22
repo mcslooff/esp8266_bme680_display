@@ -29,8 +29,8 @@ def check(path):
         "temperature": {"value": 21.5, "unit": "C"},
         "airPressure": {"value": 1013.25, "unit": "hPa"},
         "humidity": {"value": 50.0, "unit": "%"},
-        # Deliberately retain the pre-existing raw-value/unit mismatch.
-        "gasResistance": {"value": 12345.0, "unit": "kOhm"},
+        # 261728 ohms is 261.728 kilo-ohms, at the existing one-decimal precision.
+        "gasResistance": {"value": 261.7, "unit": "kOhm"},
     }
     assert fixtures["SERIALIZER_DISABLED"]["measurement"] is None
     assert fixtures["SERIALIZER_SELECTED"]["measurement"] == {

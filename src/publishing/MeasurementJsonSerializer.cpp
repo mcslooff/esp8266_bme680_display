@@ -119,9 +119,8 @@ bool MeasurementJsonSerializer::serialize(const Measurement& m, String& output) 
       previous = true;
     }
     if (metadata_.gasResistance) {
-      // Preserve the legacy value/unit pairing; correcting it is a contract change.
       json.append("%s    \"gasResistance\": {      \"value\": ", previous ? "," : "");
-      json.number(m.gasResistanceOhm, 1);
+      json.number(m.gasResistanceKOhm(), 1);
       json.append(",      \"unit\": \"kOhm\"    }");
     }
     json.append("}");
