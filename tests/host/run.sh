@@ -31,6 +31,7 @@ binary="$workdir/publishing-test"
   "${flags[@]}" \
   -I tests/host/stubs \
   tests/host/publishing_test.cpp tests/host/http_replay_test.cpp tests/host/serializer_test.cpp \
+  tests/host/sensor_test.cpp src/sensor/BME680Sensor.cpp \
   src/publishing/Publisher.cpp src/publishing/MqttPublisher.cpp \
   src/publishing/HttpPublisher.cpp src/publishing/BufferedPublisher.cpp \
   src/publishing/MeasurementJsonSerializer.cpp \

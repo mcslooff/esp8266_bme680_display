@@ -5,7 +5,7 @@
 
 class BME680Sensor {
  public:
-  explicit BME680Sensor(Adafruit_BME680& sensor, float temperatureCorrectionC = -4.0f)
+  explicit BME680Sensor(Adafruit_BME680& sensor, float temperatureCorrectionC = -3.1f)
       : sensor_(sensor), correctionC_(temperatureCorrectionC) {}
   bool begin();
   bool read(float batteryVoltage, Measurement& out);

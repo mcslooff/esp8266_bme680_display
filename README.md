@@ -30,7 +30,12 @@ The legacy configuration format at EEPROM offset 0/2 is detected and migrated to
 - HTTP requests have timeouts.
 - Failed push measurements are buffered in SPIFFS and retried.
 - Battery percentage is calculated consistently using 2.78..3.78 V as the legacy intended range.
-- The legacy BME680 temperature correction of -4.0 C is retained.
+- The BME680 temperature correction is -3.1 C (#16), adjusted from -4.0 C after
+  a calibrated thermometer read 19.0 C while the corrected sensor read 18.1 C.
+  The correction is applied once when sampling, before display and publication.
+  Historical measurements and buffered JSON are not rewritten. Verify against
+  the reference thermometer under stable conditions after deploying; this
+  single-point calibration does not establish accuracy across the full range.
 - Gas resistance is named `gasResistance`; the old `VOC` label was a naming mistake.
 - Logger variadic formatting is fixed.
 

@@ -264,6 +264,8 @@ void bufferingAndSuccessRules() {
 }
 
 int main() {
+  extern void sensorTests();
+  sensorTests();
   transportModes();
   credentialsAndConnectionTruth();
   boundedBackoffAndRecovery();

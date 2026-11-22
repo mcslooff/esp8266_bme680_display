@@ -42,6 +42,12 @@ serialization reaches a transport or the buffer.
 Host-only String reservation probes check one final payload construction per
 publication and no reserialization during existing-buffer replay.
 
+Sensor regressions compile the production BME680 wrapper against a host fake.
+They check that the firmware's default correction converts a raw 22.1 C to
+19.0 C, does not compound on repeated reads, and leaves other measurements
+unchanged. This does not replace comparison with a calibrated thermometer on
+the device under stable conditions after deployment.
+
 ## Device outage/recovery smoke check
 
 After explicitly authorizing/uploading the new firmware:

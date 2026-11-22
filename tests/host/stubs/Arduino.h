@@ -10,6 +10,14 @@
 #include <vector>
 
 using std::isfinite;
+inline uint32_t& hostMillis() {
+  static uint32_t now = 0;
+  return now;
+}
+inline uint32_t millis() { return hostMillis(); }
+inline void delay(uint32_t ms) { hostMillis() += ms; }
+inline void yield() {}
+
 template <typename T>
 T constrain(T value, T low, T high) {
   return std::min(high, std::max(low, value));
