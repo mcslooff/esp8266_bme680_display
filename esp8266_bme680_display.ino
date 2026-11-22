@@ -50,8 +50,13 @@ WifiManager wifi(logger);
 DisplayManager displayManager(display, measurements, battery, config);
 MqttPublisher mqttPublisher(mqttClient, config.mqtt, logger);
 HttpPublisher httpPublisher(httpClient, config.httpPost, logger);
-Publisher publisher(config, measurements, logger, mqttPublisher, httpPublisher);
-BufferedPublisher bufferedPublisher(publisher, SPIFFS, config.measurement, logger);
+String measurementDeviceId;
+MeasurementJsonSerializer measurementSerializer(
+    {measurementDeviceId, config.station.hostname, config.measurement.temperature,
+     config.measurement.pressure, config.measurement.humidity, config.measurement.gasResistance});
+Publisher publisher(config.measurement, measurementSerializer, mqttPublisher, httpPublisher);
+BufferedPublisher bufferedPublisher(publisher, measurementSerializer, SPIFFS, config.measurement,
+                                    logger);
 
 uint32_t lastSampleMillis = 0;
 uint32_t lastWarmupMillis = 0;
@@ -413,7 +418,13 @@ static void handleSensorRead() {
   if (sensor.read(v, m)) {
     measurements.add(m);
     lastMeasurement = m.timestamp;
-    server.send(200, "application/json", publisher.json(m));
+    String body;
+    if (measurementSerializer.serialize(m, body)) {
+      server.send(200, "application/json", body);
+    } else {
+      server.send(503, "application/json",
+                  "{\"resultCode\":10,\"resultText\":\"Failed to serialize measurement\"}");
+    }
   } else {
     Measurement empty;
     server.send(503, "application/json",
@@ -603,6 +614,9 @@ void setupWiFi() {
   // Setup WiFi
   wifi.begin(config);
   wifi.scan();
+  measurementDeviceId = WiFi.macAddress();
+  measurementDeviceId.replace(":", "");
+  measurementDeviceId.toUpperCase();
 }
 
 void setupNTP() {

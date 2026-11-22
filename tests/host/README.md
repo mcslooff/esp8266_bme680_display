@@ -32,6 +32,16 @@ Queue integration tests retain failed HTTP records, accept samples while a
 request is stalled, enforce the per-step read/publication budget, and exercise
 buffer capacity/partial writes, recovery and reset-safe original-file retention.
 
+Serializer regressions run in every mode: the C++ binary emits synthetic
+measurement fixtures and `check_serialized_json.py` parses them with Python's
+standard JSON parser, validating identity, timestamp, version, selected values,
+units, null/omitted measurements and escaped metadata independently of key order.
+The suite also checks platform numeric-format compatibility, bounded output,
+allocation/copy failures, clearing partial output, and that no failed
+serialization reaches a transport or the buffer.
+Host-only String reservation probes check one final payload construction per
+publication and no reserialization during existing-buffer replay.
+
 ## Device outage/recovery smoke check
 
 After explicitly authorizing/uploading the new firmware:

@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <vector>
 
 using std::isfinite;
 template <typename T>
@@ -16,6 +17,8 @@ T constrain(T value, T low, T high) {
 
 class String {
  public:
+  static bool failNextReserve, failNextConcat;
+  static std::vector<size_t> reserveSizes;
   String() = default;
   String(const char* value) : value_(value) {}
   String(const std::string& value) : value_(value) {}
@@ -30,7 +33,21 @@ class String {
   const char* c_str() const { return value_.c_str(); }
   char operator[](size_t index) const { return value_[index]; }
   bool reserve(size_t size) {
+    reserveSizes.push_back(size);
+    if (failNextReserve) {
+      failNextReserve = false;
+      return false;
+    }
     value_.reserve(size);
+    return true;
+  }
+  bool concat(const char* data, unsigned int length) {
+    if (failNextConcat) {
+      failNextConcat = false;
+      value_.append(data, length / 2);
+      return false;
+    }
+    value_.append(data, length);
     return true;
   }
   void trim() {

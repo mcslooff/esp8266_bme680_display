@@ -7,8 +7,9 @@
 // but never requires deleting/replacing the original file before it is drained.
 class BufferedPublisher {
  public:
-  BufferedPublisher(Publisher& publisher, FS& fs, const MeasurementConfiguration& cfg, Logger& log)
-      : publisher_(publisher), fs_(fs), cfg_(cfg), log_(log) {}
+  BufferedPublisher(Publisher& publisher, const MeasurementJsonSerializer& serializer, FS& fs,
+                    const MeasurementConfiguration& cfg, Logger& log)
+      : publisher_(publisher), serializer_(serializer), fs_(fs), cfg_(cfg), log_(log) {}
   bool publish(const Measurement& measurement, uint32_t now);
   void update(uint32_t now);
 
@@ -19,6 +20,7 @@ class BufferedPublisher {
   static constexpr uint32_t STEP_MS = 10;
   static constexpr uint32_t RETRY_MS = 5000;
   Publisher& publisher_;
+  const MeasurementJsonSerializer& serializer_;
   FS& fs_;
   const MeasurementConfiguration& cfg_;
   Logger& log_;

@@ -80,6 +80,33 @@ GitHub branch ruleset for `main` requiring **ESP8266 build**, **C++ formatting**
 Checks run for all PR changes (no path filters), so required checks are not left
 pending when only documentation changes.
 
+## Measurement JSON contract
+
+`MeasurementJsonSerializer` owns measurement field names, nesting, precision,
+units and the existing station version field. It receives only the measurement
+and device metadata/field-selection references, not network clients or the whole
+application configuration. The sketch obtains/normalizes the hardware MAC once
+during WiFi setup. `Publisher` only coordinates transport delivery.
+
+Each new publication is serialized once; the same payload is passed to HTTP,
+MQTT or buffering. Existing buffered JSON is replayed without reserialization.
+`/sensor/read` uses the same serializer. The successful JSON contract is unchanged,
+including the legacy gas-resistance raw value labeled `kOhm`; correcting that
+mismatch requires an explicit, separate contract change.
+
+Serialization uses a bounded 1024-byte scratch payload and checks allocation
+and final output-copy success. Finite numeric formatting retains Arduino String's
+existing precision/rounding, with one small numeric temporary at a time.
+Non-finite required values, oversized metadata or allocation failure clear the
+output and prevent publishing/buffering a partial record; `/sensor/read` returns
+HTTP 503 on serialization failure. Disabled measurement values may be non-finite
+because they are omitted. JSON string controls are escaped.
+
+The host suite parses representative output using Python's standard JSON parser,
+checks the device identity, timestamp, values and units, and verifies optional
+fields plus failure/no-partial-publication behavior. No new JSON dependency or
+persisted format is introduced.
+
 ## MQTT recovery
 
 MQTT uses `AsyncMqttClient` 0.9.0 and the ESP8266-specific `ESPAsyncTCP` 2.0.0.

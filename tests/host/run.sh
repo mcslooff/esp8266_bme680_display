@@ -30,17 +30,20 @@ binary="$workdir/publishing-test"
 "${CXX:-g++}" -std=c++11 -Wall -Wextra -Werror \
   "${flags[@]}" \
   -I tests/host/stubs \
-  tests/host/publishing_test.cpp tests/host/http_replay_test.cpp \
+  tests/host/publishing_test.cpp tests/host/http_replay_test.cpp tests/host/serializer_test.cpp \
   src/publishing/Publisher.cpp src/publishing/MqttPublisher.cpp \
   src/publishing/HttpPublisher.cpp src/publishing/BufferedPublisher.cpp \
+  src/publishing/MeasurementJsonSerializer.cpp \
   src/system/Logger.cpp src/storage/MeasurementStore.cpp \
   -o "$binary"
 if [[ "$mode" == --sanitize ]]; then
   ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
-    UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 "$binary"
+    UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 "$binary" > "$workdir/test-output"
 else
-  "$binary"
+  "$binary" > "$workdir/test-output"
 fi
+cat "$workdir/test-output"
+python3 tests/host/check_serialized_json.py "$workdir/test-output"
 if [[ "$mode" == --coverage ]]; then
   mkdir -p build/coverage
   gcovr --config gcovr.cfg --root . "$workdir" --print-summary \
