@@ -9,18 +9,23 @@ struct Fixture {
   Logger log;
   AsyncMqttClient client;
   AsyncClient httpSocket;
-  MeasurementStore store{0};
+  String deviceId{"123456789ABC"};
+  MeasurementJsonSerializer serializer{{deviceId, cfg.station.hostname, cfg.measurement.temperature,
+                                        cfg.measurement.pressure, cfg.measurement.humidity,
+                                        cfg.measurement.gasResistance}};
   MqttPublisher mqtt{client, cfg.mqtt, log};
   HttpPublisher http{httpSocket, cfg.httpPost, log};
-  Publisher publisher{cfg, store, log, mqtt, http};
+  Publisher publisher{cfg.measurement, serializer, mqtt, http};
   FS fs;
-  BufferedPublisher buffered{publisher, fs, cfg.measurement, log};
+  BufferedPublisher buffered{publisher, serializer, fs, cfg.measurement, log};
   Measurement measurement;
 
   Fixture() {
     Serial.output.clear();
     WiFi.connectionStatus = WL_CONNECTED;
     ESP.freeHeap = 40000;
+    String::failNextReserve = String::failNextConcat = false;
+    String::reserveSizes.clear();
     std::strcpy(cfg.mqtt.broker, "broker.test");
     std::strcpy(cfg.mqtt.producerTopic, "measurements");
     std::strcpy(cfg.httpPost.url, "http://collector.test");
@@ -30,6 +35,11 @@ struct Fixture {
     measurement.pressurePa = 101325;
     measurement.gasResistanceOhm = 12345;
     measurement.batteryVoltage = 3.5;
+  }
+  String json() const {
+    String body;
+    assert(serializer.serialize(measurement, body));
+    return body;
   }
   void connect(uint32_t now = 0) {
     mqtt.update(now);

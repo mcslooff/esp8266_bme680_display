@@ -148,7 +148,7 @@ void httpConfigurationAndResourceFailures() {
 void pendingLiveFailureIsBuffered() {
   Fixture f;
   f.cfg.measurement.publishHttp = true;
-  const std::string expected = f.publisher.json(f.measurement).c_str();
+  const std::string expected = f.json().c_str();
   assert(f.buffered.publish(f.measurement, 0));
   assert(!f.fs.exists("buffer.json"));  // Do not write successful live requests to flash.
   f.buffered.update(4999);
@@ -237,7 +237,8 @@ void replayBudgetMqttAndResetSafety() {
   restart.fs.seed("one\r\ntwo\r\n");
   restart.buffered.update(0);
   assert(restart.fs.buffered() == "one\r\ntwo\r\n");
-  BufferedPublisher afterReset(restart.publisher, restart.fs, restart.cfg.measurement, restart.log);
+  BufferedPublisher afterReset(restart.publisher, restart.serializer, restart.fs,
+                               restart.cfg.measurement, restart.log);
   afterReset.update(10);
   assert(restart.client.payload == "one");  // Replay duplicates, never erase unacknowledged suffix.
   afterReset.update(20);

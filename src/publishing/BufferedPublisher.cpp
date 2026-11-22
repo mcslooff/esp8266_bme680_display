@@ -28,7 +28,11 @@ void BufferedPublisher::retryLater(uint32_t now) {
 
 bool BufferedPublisher::publish(const Measurement& measurement, uint32_t now) {
   if (!cfg_.publishHttp && !cfg_.publishMqtt) return true;
-  const String body = publisher_.json(measurement);
+  String body;
+  if (!serializer_.serialize(measurement, body)) {
+    log_.error("Measurement serialization failed; not published or buffered\n");
+    return false;
+  }
   if (active_ || pending_.length() || fs_.exists(BUFFER_FILE)) return append(body);
 
   const PublicationResult result = publisher_.publishBufferedJson(body, now);

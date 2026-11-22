@@ -6,6 +6,9 @@
 SerialStub Serial;
 WiFiStub WiFi;
 EspStub ESP;
+bool String::failNextReserve = false;
+bool String::failNextConcat = false;
+std::vector<size_t> String::reserveSizes;
 
 size_t occurrences(const std::string& text, const std::string& needle) {
   size_t count = 0, offset = 0;
@@ -22,8 +25,9 @@ void transportModes() {
     f.cfg.measurement.publishHttp = mode & 1;
     f.cfg.measurement.publishMqtt = mode & 2;
     if (mode & 2) f.connect();
-    const std::string expected = f.publisher.json(f.measurement).c_str();
+    const std::string expected = f.json().c_str();
     assert(expected.size() > 256);
+    String::reserveSizes.clear();
     const auto result = f.publisher.publish(f.measurement, 0);
     if (mode & 1) {
       assert(result == PublicationResult::Pending);
@@ -32,6 +36,8 @@ void transportModes() {
       assert(result == PublicationResult::Succeeded);
     }
     assert(f.publisher.result() == PublicationResult::Succeeded);
+    assert(std::count(String::reserveSizes.begin(), String::reserveSizes.end(), expected.size()) ==
+           (mode ? 1 : 0));
     assert(f.httpSocket.connectCalls == ((mode & 1) ? 1 : 0));
     assert(f.client.publishCalls == ((mode & 2) ? 1 : 0));
     if (mode & 1) assert(f.httpBody() == expected);
@@ -267,5 +273,7 @@ int main() {
   bufferingAndSuccessRules();
   extern void httpAndReplayTests();
   httpAndReplayTests();
+  extern void serializationTests();
+  serializationTests();
   std::cout << "Publishing/reconnect regression tests passed\n";
 }
